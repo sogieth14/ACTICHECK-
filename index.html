@@ -4,9 +4,10 @@
 <title>ActiCheck Diagnosis Support</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#12273b">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icon-192.png">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="icon-light.svg" type="image/svg+xml" media="(prefers-color-scheme: light)">
+<link rel="icon" href="icon-dark.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Montserrat:wght@300;700&display=swap" rel="stylesheet">
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#fff;--ink:#0d1b2a;--navy:#12273b;--on:#fff;--mute:#5d7186;--line:#e3e6ea;--open:#f0efee;--h1:#e6f0fa;--h2:#d3e4f4;--acc:#4E92DD;--chip:#eef5fb;--chipb:#cfe0f0;--r:#b3261e;--rl:#fbe8e6;--am:#8a5a00;--aml:#fff3d6}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b141d;--ink:#e8eff6;--navy:#e8f1fa;--on:#12273b;--mute:#9db0c2;--line:#223445;--open:#132433;--h1:#10202e;--h2:#0b1722;--chip:#14283a;--chipb:#25405a;--r:#ff8d84;--rl:#3a1a18;--am:#f0c15a;--aml:#3a2f12}}
@@ -74,14 +75,29 @@ select{font:inherit;font-weight:600;padding:11px 16px;border-radius:999px;border
 .tests li{background:var(--bg);border:1px solid var(--chipb);border-radius:999px;padding:8px 16px;font-weight:600;font-size:14px}
 .miss{margin-top:12px;color:var(--am);background:var(--aml);border-radius:14px;padding:10px 14px;font-size:14px}
 .foot{max-width:1100px;margin:0 auto;padding:0 24px 48px;color:var(--mute);font-size:13px}
+.vin{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.vin label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--mute)}
+.vin input,.vin select{font:inherit;font-size:16px;font-weight:600;padding:11px 14px;border-radius:14px;border:1.5px solid var(--chipb);background:var(--bg);color:var(--ink);width:100%;margin:0}
+.vin input:focus-visible,.vin select:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.two{display:flex;gap:6px}.two select{width:auto;flex:none;padding:11px 8px}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.vc{background:var(--bg);border:1.5px solid var(--chipb);border-radius:18px;padding:12px 14px}
+.vl{font-size:12px;font-weight:600;color:var(--mute)}.vv{font-size:22px;font-weight:800;letter-spacing:-.02em}.vn{font-size:13px;font-weight:600;color:var(--mute)}
+.vc.warn{border-color:var(--am);background:var(--aml)}.vc.warn .vn{color:var(--am)}
+.vc.danger{border-color:var(--r);background:var(--rl)}.vc.danger .vn,.vc.danger .vv{color:var(--r)}
+.cat{font-size:12px;font-weight:600;color:var(--mute);letter-spacing:.04em}
+.brand{display:flex;align-items:center;gap:10px}.lk{height:52px;width:auto;display:block}.lk-d{display:none}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .lk-l{display:none}:root:not([data-theme="light"]) .lk-d{display:block}}
+:root[data-theme="dark"] .lk-l{display:none}:root[data-theme="dark"] .lk-d{display:block}
+.sfoot{background:#0A0D12;color:#9db0c2;text-align:center;padding:40px 24px 36px;margin-top:24px}.sfoot img{display:block;margin:12px auto 18px;max-width:70%;height:auto}.lab2{font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-weight:600;color:#7FA9E8}.sfoot p{margin:0 auto;max-width:520px;font-size:13px;line-height:1.6}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition:none!important}.ecg path{stroke-dashoffset:0}}
 </style></head><body>
 <section class="hero">
 <svg class="ecg" viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 70 H220 L250 70 L270 20 L300 105 L325 70 H560 L585 70 L605 10 L640 112 L665 70 H900 L925 70 L945 28 L975 100 L995 70 H1200"/></svg>
 <div class="in">
-<div class="nav"><div class="logo">ACTICHECK<small>DIAGNOSIS SUPPORT</small></div><div class="pill">Fever pilot</div></div>
+<div class="nav"><div class="brand"><svg xmlns="http://www.w3.org/2000/svg" class="lk lk-l" role="img" aria-label="ActiCheck Diagnosis Support" viewBox="0 0 260 80"><g transform="translate(0 18)"><mask id="gl" maskUnits="userSpaceOnUse" x="-5" y="-5" width="70" height="60"><rect x="-5" y="-5" width="70" height="60" fill="#fff"/><polyline points="15,27 25,38 46,8" fill="none" stroke="#000" stroke-width="9" stroke-linejoin="miter"/></mask><g mask="url(#gl)"><rect x="0" y="20" width="22" height="4" fill="#1F6FEB"/><polygon points="9,4 13,8 13,20 9,20" fill="#7FA8F0"/><polygon points="9,24 13,24 13,36 9,40" fill="#1F6FEB"/></g><polyline points="15,27 25,38 46,8" fill="none" stroke="#0A0D12" stroke-width="4.5" stroke-linejoin="miter"/></g><text x="66" y="46" font-size="26" letter-spacing="1" fill="#0A0D12" font-family="Montserrat,Helvetica,Arial,sans-serif"><tspan font-weight="700">ACTI</tspan><tspan font-weight="300" dx="7">CHECK</tspan></text><text x="67" y="66" font-size="11" letter-spacing="3" fill="#4C7FD0" font-family="Montserrat,Helvetica,Arial,sans-serif">DIAGNOSIS SUPPORT</text></svg><svg xmlns="http://www.w3.org/2000/svg" class="lk lk-d" role="img" aria-label="ActiCheck Diagnosis Support" viewBox="0 0 260 80"><g transform="translate(0 18)"><mask id="gd" maskUnits="userSpaceOnUse" x="-5" y="-5" width="70" height="60"><rect x="-5" y="-5" width="70" height="60" fill="#fff"/><polyline points="15,27 25,38 46,8" fill="none" stroke="#000" stroke-width="9" stroke-linejoin="miter"/></mask><g mask="url(#gd)"><rect x="0" y="20" width="22" height="4" fill="#4C9BFF"/><polygon points="9,4 13,8 13,20 9,20" fill="#B4CFFF"/><polygon points="9,24 13,24 13,36 9,40" fill="#4C9BFF"/></g><polyline points="15,27 25,38 46,8" fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linejoin="miter"/></g><text x="66" y="46" font-size="26" letter-spacing="1" fill="#FFFFFF" font-family="Montserrat,Helvetica,Arial,sans-serif"><tspan font-weight="700">ACTI</tspan><tspan font-weight="300" dx="7">CHECK</tspan></text><text x="67" y="66" font-size="11" letter-spacing="3" fill="#7FA9E8" font-family="Montserrat,Helvetica,Arial,sans-serif">DIAGNOSIS SUPPORT</text></svg></div><div class="pill">Pilot v0.2</div></div>
 <div class="tag">&#9679; Clinical decision support</div>
-<h1>Fewer missed diagnoses, one fever case at a time</h1>
+<h1>Fewer missed diagnoses, one patient at a time</h1>
 <p class="lead">Enter what you see. Get warning signs, ranked possibilities, and the tests worth running with what your clinic has.</p>
 <div class="btns"><button class="b b1" id="start">Start a case<i>&#8594;</i></button><button class="b b2" id="how">How it works<i>&#8594;</i></button></div>
 <div class="emb"><span class="lab">Demo only</span><div class="ch"><span>Not clinically validated</span><span>Doctor decides</span><span id="net">Works offline</span></div></div>
@@ -90,15 +106,28 @@ select{font:inherit;font-weight:600;padding:11px 16px;border-radius:999px;border
 <section class="tool" id="tool"><div class="tag">&#9679; New case</div>
 <div class="row open"><button class="rh" aria-expanded="true"><span class="n">01</span><span class="t">Patient</span><span class="ar">&#8599;</span></button><div class="rb"><div><div class="pad">
 <div class="sels"><select id="age" aria-label="Age group"><option value="adult">Adult</option><option value="child">Child under 12</option><option value="infant">Infant under 1</option></select>
-<select id="dur" aria-label="Fever duration"><option value="short">Fever under 3 days</option><option value="mid">3 to 14 days</option><option value="long">Over 14 days</option></select></div>
+<select id="dur" aria-label="Fever duration"><option value="short">Symptoms under 3 days</option><option value="mid">Symptoms 3 to 14 days</option><option value="long">Symptoms over 14 days</option></select></div>
 <div class="grid" id="ctx"></div></div></div></div></div>
-<div class="row"><button class="rh" aria-expanded="false"><span class="n">02</span><span class="t">Symptoms and signs</span><span class="cnt" id="c-sym"></span><span class="ar">&#8599;</span></button><div class="rb"><div><div class="pad"><div class="grid" id="sym"></div></div></div></div></div>
-<div class="row"><button class="rh" aria-expanded="false"><span class="n">03</span><span class="t">Tests available here</span><span class="cnt" id="c-tst"></span><span class="ar">&#8599;</span></button><div class="rb"><div><div class="pad"><div class="grid" id="tst"></div></div></div></div></div>
+<div class="row"><button class="rh" aria-expanded="false"><span class="n">02</span><span class="t">Vitals</span><span class="cnt" id="c-vit"></span><span class="ar">&#8599;</span></button><div class="rb"><div><div class="pad">
+<p class="why" style="margin:0 0 12px">All optional. Enter what you measured.</p>
+<div class="vin">
+<label>Temperature (°C)<input id="v-t" type="number" inputmode="decimal" step="0.1"></label>
+<label>Pulse (per min)<input id="v-p" type="number" inputmode="numeric"></label>
+<label>Breathing rate (per min)<input id="v-r" type="number" inputmode="numeric"></label>
+<label>BP top number<input id="v-s" type="number" inputmode="numeric"></label>
+<label>BP bottom number<input id="v-d" type="number" inputmode="numeric"></label>
+<label>Oxygen level (%)<input id="v-o" type="number" inputmode="numeric"></label>
+<label>Weight (kg)<input id="v-w" type="number" inputmode="decimal" step="0.1"></label>
+<label>Height (cm)<input id="v-h" type="number" inputmode="decimal"></label>
+<label>Blood sugar<span class="two"><input id="v-g" type="number" inputmode="decimal" step="0.1"><select id="v-gu" aria-label="Sugar unit"><option value="mmol">mmol/L</option><option value="mg">mg/dL</option></select></span></label>
+</div></div></div></div></div>
+<div class="row"><button class="rh" aria-expanded="false"><span class="n">03</span><span class="t">Symptoms and signs</span><span class="cnt" id="c-sym"></span><span class="ar">&#8599;</span></button><div class="rb"><div><div class="pad"><div class="grid" id="sym"></div></div></div></div></div>
+<div class="row"><button class="rh" aria-expanded="false"><span class="n">04</span><span class="t">Tests available here</span><span class="cnt" id="c-tst"></span><span class="ar">&#8599;</span></button><div class="rb"><div><div class="pad"><div class="grid" id="tst"></div></div></div></div></div>
 <div class="go"><button class="b b1" id="run">Show possibilities<i>&#8594;</i></button></div>
 </section>
 
-<section id="out"><div class="card" id="flags"></div><div class="card" style="animation-delay:.12s"><h2>Possibilities</h2><div id="dxs"></div></div><div class="card" style="animation-delay:.24s"><h2>Tests to consider</h2><ul class="tests" id="tests"></ul><div class="miss" id="miss" hidden></div></div>
+<section id="out"><div class="card" id="vitals"></div><div class="card" id="flags"></div><div class="card" style="animation-delay:.12s"><h2>Possibilities</h2><div id="dxs"></div></div><div class="card" style="animation-delay:.24s"><h2>Tests to consider</h2><ul class="tests" id="tests"></ul><div class="miss" id="miss" hidden></div></div>
 <div class="card" style="animation-delay:.36s"><h2>Confirmed diagnosis</h2><p class="why">After tests, record the final diagnosis. Over time this shows how often the app is right.</p><select id="final" aria-label="Final diagnosis"></select><p class="why" id="saved"></p><button class="b b2" id="export" style="margin-top:6px">Export saved cases<i>&#8595;</i></button></div></section>
-<div class="foot">ActiCheck by Subaru Labs. Rules v0.1, not yet reviewed by a doctor. It supports a doctor's judgment and never replaces it.</div>
+<footer class="sfoot"><div class="lab2">Built by</div><img src="subaru-labs.png" alt="Subaru Labs" width="290" height="63"><p>ActiCheck by Subaru Labs. Rules v0.2, not yet reviewed by a doctor. It supports a doctor's judgment and never replaces it.</p></footer>
 
 <script src="rules.js"></script><script src="app.js"></script></body></html>
