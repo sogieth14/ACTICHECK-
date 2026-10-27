@@ -6,7 +6,8 @@ function b64d(s){s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="="
 var CSS='.sm{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(8,16,24,.75)}.sm.open{display:flex}.smc{background:var(--bg);color:var(--ink);width:100%;max-width:440px;max-height:100%;overflow:auto;border-radius:28px;padding:20px;margin:12px;display:flex;flex-direction:column;gap:12px}.smc h3{margin:0;font-size:22px}.smc video{width:100%;border-radius:18px;background:#000;aspect-ratio:1/1;object-fit:cover}.smc input{font:inherit;padding:12px 14px;border-radius:14px;border:1.5px solid var(--chipb);background:var(--bg);color:var(--ink);width:100%}.smc .row2{display:flex;gap:8px}.smc button{all:unset;box-sizing:border-box;text-align:center;font-weight:700;border-radius:999px;padding:12px 18px;cursor:pointer;border:1.5px solid var(--navy);color:var(--navy)}.smc button.p{background:var(--navy);color:var(--on)}.smc button:focus-visible,.smc input:focus-visible{outline:3px solid var(--acc);outline-offset:2px}.smst{font-size:14px;font-weight:600;color:var(--mute);min-height:20px}';
 function stop(){if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}}
 function close(){stop();M.classList.remove("open");document.body.style.overflow="";if(opener)opener.focus()}
-var pend=null;
+var pend=null,PT=null;
+function part(t){var p=t.split(":"),k=p[1]+":"+p[2],ix=(p[3]||"").split("/"),i=+ix[0],n=+ix[1],ch=p.slice(4).join(":"),st=M.querySelector(".smst");if(!i||!n||!ch){st.textContent="That is not an ActiCheck case code.";return false}if(!PT||PT.k!==k)PT={k:k,n:n,g:{}};PT.g[i]=ch;var c=Object.keys(PT.g).length;if(c<PT.n){st.textContent="Scanned part "+i+" of "+n+" ("+c+" done). Scan the next QR.";return false}var all="";for(var j=1;j<=PT.n;j++)all+=PT.g[j];PT=null;done(all);return true}
 function done(text){var cb=onCode,st=M.querySelector(".smst"),inp=M.querySelector(".smi");text=(text||"").trim();
 if(text.indexOf("ACTI2:")===0){stop();pend=text;inp.value="";inp.type="password";inp.placeholder="Enter the PIN";inp.focus();st.textContent="This case is locked. Enter the PIN, then tap Open.";return}
 try{var c=CASEQR.decode(text);close();cb(c)}catch(e){st.textContent="That is not an ActiCheck case code."}}
@@ -15,11 +16,11 @@ function build(){
 var st=document.createElement("style");st.textContent=CSS;document.head.appendChild(st);
 M=document.createElement("div");M.className="sm";M.setAttribute("role","dialog");M.setAttribute("aria-modal","true");M.setAttribute("aria-label","Scan a case QR");
 M.innerHTML='<div class="smc"><h3>Scan a case QR</h3><video playsinline muted></video><div class="smst" role="status" aria-live="polite"></div><div class="row2"><input class="smi" placeholder="Or paste a case code" aria-label="Case code"><button class="p smo">Open</button></div><button class="smx">Cancel</button></div>';
-M.querySelector(".smx").onclick=close;M.querySelector(".smo").onclick=function(){if(pend)openPin();else done(M.querySelector(".smi").value)};
+M.querySelector(".smx").onclick=close;M.querySelector(".smo").onclick=function(){var inp=M.querySelector(".smi"),v=inp.value.trim();if(pend)openPin();else if(v.indexOf("ACTIP:")===0){part(v);inp.value=""}else done(v)};
 M.addEventListener("click",function(e){if(e.target===M)close()});
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&M.classList.contains("open"))close()});
 document.body.appendChild(M)}
-function loop(v,cv,cx){if(!stream)return;if(v.readyState>=2&&v.videoWidth){var w=Math.min(640,v.videoWidth),h=Math.round(w*v.videoHeight/v.videoWidth);cv.width=w;cv.height=h;cx.drawImage(v,0,0,w,h);var r=jsQR(cx.getImageData(0,0,w,h).data,w,h,{inversionAttempts:"dontInvert"});if(r&&r.data.indexOf("ACTI")===0){done(r.data);return}}setTimeout(function(){loop(v,cv,cx)},120)}
+function loop(v,cv,cx){if(!stream)return;if(v.readyState>=2&&v.videoWidth){var w=Math.min(640,v.videoWidth),h=Math.round(w*v.videoHeight/v.videoWidth);cv.width=w;cv.height=h;cx.drawImage(v,0,0,w,h);var r=jsQR(cx.getImageData(0,0,w,h).data,w,h,{inversionAttempts:"dontInvert"});if(r&&r.data.indexOf("ACTI")===0){if(r.data.indexOf("ACTIP:")===0){if(part(r.data))return}else{done(r.data);return}}}setTimeout(function(){loop(v,cv,cx)},120)}
 var enc=new TextEncoder(),dec=new TextDecoder();
 function toB(u){var t="";for(var i=0;i<u.length;i++)t+=String.fromCharCode(u[i]);return btoa(t).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
 function fromB(x){x=x.replace(/-/g,"+").replace(/_/g,"/");while(x.length%4)x+="=";var b=atob(x),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
@@ -31,7 +32,7 @@ decodeAsync:function(t,pin){var u=fromB(t.trim().slice(6));return dk(pin,u.slice
 encode:function(c){return PFX+b64e(JSON.stringify(c))},
 decode:function(t){t=(t||"").trim();if(t.indexOf(PFX)!==0)throw new Error("bad");var c=JSON.parse(b64d(t.slice(PFX.length)));if(!c||c.v!==1)throw new Error("bad");return c},
 svg:function(t){var q=qrcode(0,"M");q.addData(t);q.make();return q.createSvgTag({cellSize:4,margin:4,scalable:true})},
-scan:function(cb){if(!M)build();onCode=cb;pend=null;opener=document.activeElement;var i0=M.querySelector(".smi");i0.type="text";i0.value="";i0.placeholder="Or paste a case code";M.classList.add("open");document.body.style.overflow="hidden";var s=M.querySelector(".smst"),v=M.querySelector("video");s.textContent="";
+scan:function(cb){if(!M)build();onCode=cb;pend=null;PT=null;opener=document.activeElement;var i0=M.querySelector(".smi");i0.type="text";i0.value="";i0.placeholder="Or paste a case code";M.classList.add("open");document.body.style.overflow="hidden";var s=M.querySelector(".smst"),v=M.querySelector("video");s.textContent="";
 if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){s.textContent="Camera not available. Paste the case code instead.";return}
 navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}}).then(function(m){stream=m;v.srcObject=m;v.play();s.textContent="Point the camera at the case QR.";var cv=document.createElement("canvas");loop(v,cv,cv.getContext("2d",{willReadFrequently:true}))}).catch(function(){s.textContent="Camera blocked. Allow camera access, or paste the case code instead."})}
 };

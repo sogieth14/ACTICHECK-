@@ -53,7 +53,7 @@ function renderDx(){
 var rows=ST.top.map(function(r){return{r:r,s:score(r)}}).sort(function(a,b){return b.s-a.s}),max=Math.max.apply(null,rows.map(function(x){return x.s}).concat([1])),h="",found=[];
 if(!rows.length)h='<p class="why">Not enough to rank anything. Add symptoms or vitals, or consider causes outside these rules.</p>';
 rows.forEach(function(x){var r=x.r,d=r.d,a=ST.adj[d.n]||{},open=ST.open[d.n],low=x.s<R.threshold,lab=low?"Less likely now":(x.s>=0.75*max?"Most consistent":"Also consider");
-h+='<div class="dx'+(low?" low":"")+'" data-n="'+d.n+'"><button class="dxh" aria-expanded="'+!!open+'"><span class="top"><span>'+d.n+'</span><span class="lp">'+lab+'</span></span><span class="cat">'+d.cat+(open?" · tap to close":" · tap to examine and test")+'</span></button><div class="bar"><i style="width:'+Math.max(4,Math.round(Math.max(x.s,0)/max*100))+'%"></i></div><div class="why">'+d.why+(r.hits.length?" Matches: "+r.hits.join(", ")+".":"")+'</div>';
+h+='<div class="dx'+(low?" low":"")+'" data-n="'+d.n+'"><button class="dxh" aria-expanded="'+!!open+'"><span class="top"><span>'+esc(d.n)+'</span><span class="lp">'+lab+'</span></span><span class="cat">'+d.cat+(open?" · tap to close":" · tap to examine and test")+'</span></button><div class="bar"><i style="width:'+Math.max(4,Math.round(Math.max(x.s,0)/max*100))+'%"></i></div><div class="why">'+d.why+(r.hits.length?" Matches: "+r.hits.join(", ")+".":"")+'</div>';
 (R.checks[d.n]||[]).forEach(function(it,i){if(it[3]&&a["e"+i]===1)h+='<div class="flag"><b>Urgent</b><span class="why">'+it[3]+'</span></div>'});
 if(open){h+='<div class="ck"><div class="ckh">Examine</div>';
 (R.checks[d.n]||[]).forEach(function(it,i){h+=item("e"+i,it[0],it[1],a["e"+i],false,d.n)});
@@ -70,30 +70,38 @@ if(dm){ST.dm[dm.dataset.dk]=!ST.dm[dm.dataset.dk];renderDx()}else if(sg){var n=s
 else if(hd){var m=hd.closest(".dx").dataset.n;ST.open[m]=!ST.open[m];renderDx()}});
 var CID=null,KEEP=false,DRY=false,tmP,tmS;
 function newId(){var c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",s="";for(var i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)];return s}
-function gather(){var v={};["t","p","r","s","d","o","w","h","g"].forEach(function(k){var x=$("v-"+k).value;if(x!=="")v[k]=x});if($("v-gu").value)v.gu=$("v-gu").value;
+function gatherRaw(){var v={};["t","p","r","s","d","o","w","h","g"].forEach(function(k){var x=$("v-"+k).value;if(x!=="")v[k]=x});if($("v-gu").value)v.gu=$("v-gu").value;
 return{v:1,id:CID,n:$("fname").value.trim(),w:$("fward").value.trim(),fi:last?last.final:"",a:$("age").value,d:$("dur").value,s:Object.keys(sel("sym")),c:Object.keys(sel("ctx")),t:Object.keys(sel("tst")),x:v,f:ST?ST.adj:{}}}
+var REV=0,TS=0,SIG=null,FREEZE=false,QP=0;
+function gather(){var d=gatherRaw();if(!FREEZE){var g=JSON.stringify(d);if(g!==SIG){SIG=g;REV++;TS=Date.now()}}d.rv=REV;d.ts=TS;return d}
+function fmt(t){return t?new Date(t).toLocaleString([],{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"unknown time"}
+function esc(x){return String(x==null?"":x).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function split(t,d){if(t.length<=520)return[t];var n=Math.ceil(t.length/480),o=[];for(var i=0;i<n;i++)o.push("ACTIP:"+CID+":"+d.rv+":"+(i+1)+"/"+n+":"+t.slice(i*480,(i+1)*480));return o}
+function drawQR(){var n=ST.parts.length;$("qrbox").innerHTML=CASEQR.svg(ST.parts[QP]);$("qrpg").hidden=n<2;$("qrpn").textContent="Part "+(QP+1)+" of "+n}
+function setCode(t,d){ST.code=t;ST.parts=split(t,d);if(QP>=ST.parts.length)QP=0;drawQR();$("qrts").textContent="Made "+fmt(d.ts)+" \u00b7 version "+d.rv+(ST.parts.length>1?" \u00b7 "+ST.parts.length+" QR codes":"")}
+$("qrprev").onclick=function(){if(ST&&ST.parts){QP=(QP+ST.parts.length-1)%ST.parts.length;drawQR()}};$("qrnext").onclick=function(){if(ST&&ST.parts){QP=(QP+1)%ST.parts.length;drawQR()}};
 function updQR(){if(!ST)return;if(!CID)CID=newId();var d=gather(),pin=$("pinon").checked?$("pin").value:"",nm=d.n;$("qrid").textContent=(nm?nm+" \u00b7 ":"")+"Case "+CID;
-if($("pinon").checked&&pin.length<4){ST.code="";$("qrbox").innerHTML="";$("pinmsg").textContent="Enter a PIN of 4 to 8 digits to create the locked QR.";return}
+if($("pinon").checked&&pin.length<4){ST.code="";ST.parts=null;$("qrbox").innerHTML="";$("qrpg").hidden=true;$("qrts").textContent="";$("pinmsg").textContent="Enter a PIN of 4 to 8 digits to create the locked QR.";return}
 $("pinmsg").textContent=$("pinon").checked?"Locked. Share the PIN separately, never with the QR.":"";
-(pin?CASEQR.encodeAsync(d,pin):Promise.resolve(CASEQR.encode(d))).then(function(t){ST.code=t;$("qrbox").innerHTML=CASEQR.svg(t)}).catch(function(){$("pinmsg").textContent="Could not lock. Try again."})}
+(pin?CASEQR.encodeAsync(d,pin):Promise.resolve(CASEQR.encode(d))).then(function(t){setCode(t,d)}).catch(function(){$("pinmsg").textContent="Could not lock. Try again."})}
 $("pinon").onchange=function(){if(!CASEQR.canLock()){this.checked=false;$("pinmsg").textContent="Locking needs the secure https site.";return}$("pin").hidden=!this.checked;updQR()};$("pin").oninput=function(){this.value=this.value.replace(/\D/g,"").slice(0,8);updQR()};
 function fname(){var n=$("fname").value.trim();return(n||"case-"+CID).replace(/[^\w\-]+/g,"-")}
 function svgPng(code,cb){var im=new Image();im.onload=function(){var c=document.createElement("canvas");c.width=c.height=600;var x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,600,600);x.drawImage(im,0,0,600,600);c.toBlob(cb)};im.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(CASEQR.svg(code))}
 function msg(){return($("fname").value.trim()?$("fname").value.trim()+"\n":"")+"ActiCheck case "+CID+"\nIn ActiCheck tap Scan a case QR, then paste this code:\n"+ST.code}
 $("qrwa").onclick=function(){if(ST&&ST.code)window.open("https://wa.me/?text="+encodeURIComponent(msg()),"_blank")};
-if(navigator.share)$("qrsh").onclick=function(){if(ST&&ST.code)navigator.share({title:"ActiCheck case "+CID,text:msg()}).catch(function(){})};else $("qrsh").hidden=true;
+
 // files
 function fstore(){try{return JSON.parse(localStorage.getItem("acticheck_files")||"[]")}catch(e){return[]}}
 function saveFile(){if(!$("fname").value.trim())return;if(!CID)CID=newId();var d=gather(),a=fstore(),r={id:CID,t:Date.now(),st:(d.fi&&d.fi!=="Not confirmed yet")?"Confirmed":"Draft",d:d},i=a.map(function(x){return x.id}).indexOf(CID);if(i<0)a.push(r);else a[i]=r;try{localStorage.setItem("acticheck_files",JSON.stringify(a))}catch(e){}renderFiles()}
 function renderFiles(){var q=$("fsearch").value.toLowerCase(),a=fstore().filter(function(r){return!q||(r.d.n||"").toLowerCase().indexOf(q)>-1}).sort(function(x,y){return y.t-x.t}),h="";
 if(!a.length)h='<p class="ew">'+(q?"No files match.":"No files yet. Name a file below to save it here.")+'</p>';
-a.forEach(function(r){var d=r.d;h+='<button class="fc" data-id="'+r.id+'"><div class="fct"><span>'+d.n+'</span><span class="st'+(r.st==="Confirmed"?" cf":"")+'">'+r.st+'</span></div><div class="fcs">'+(d.w?d.w+" \u00b7 ":"")+({adult:"Adult",child:"Child",infant:"Infant"}[d.a]||"Age not set")+" \u00b7 "+(d.s||[]).length+" symptoms"+(d.fi?" \u00b7 "+d.fi:"")+'</div><div class="fcs">'+new Date(r.t).toLocaleString([],{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})+'</div></button><button class="fx" data-del="'+r.id+'">Delete file</button>'});
+a.forEach(function(r){var d=r.d;h+='<button class="fc" data-id="'+r.id+'"><div class="fct"><span>'+d.n+'</span><span class="st'+(r.st==="Confirmed"?" cf":"")+'">'+r.st+'</span></div><div class="fcs">'+(d.w?esc(d.w)+" \u00b7 ":"")+({adult:"Adult",child:"Child",infant:"Infant"}[d.a]||"Age not set")+" \u00b7 "+(d.s||[]).length+" symptoms"+(d.fi?" \u00b7 "+esc(d.fi):"")+'</div><div class="fcs">'+new Date(r.t).toLocaleString([],{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})+'</div></button><button class="fx" data-del="'+r.id+'">Delete file</button>'});
 $("flist").innerHTML=h}
 $("flist").addEventListener("click",function(e){var dl=e.target.closest("[data-del]"),fc=e.target.closest(".fc");
 if(dl){if(confirm("Delete this file from this phone?")){localStorage.setItem("acticheck_files",JSON.stringify(fstore().filter(function(r){return r.id!==dl.dataset.del})));renderFiles()}}
 else if(fc){var r=fstore().filter(function(x){return x.id===fc.dataset.id})[0];if(r){applyCase(r.d);$("fname").scrollIntoView()}}});
 $("fsearch").oninput=renderFiles;
-function resetForm(){document.querySelectorAll("#sym input,#ctx input,#tst input").forEach(function(i){i.checked=false});["age","dur","v-gu"].forEach(function(i){$(i).value=""});["v-t","v-p","v-r","v-s","v-d","v-o","v-w","v-h","v-g","fname","fward"].forEach(function(i){$(i).value=""});CID=null;ST=null;last=null;$("out").style.display="none";$("peek").hidden=true;count()}
+function resetForm(){document.querySelectorAll("#sym input,#ctx input,#tst input").forEach(function(i){i.checked=false});["age","dur","v-gu"].forEach(function(i){$(i).value=""});["v-t","v-p","v-r","v-s","v-d","v-o","v-w","v-h","v-g","fname","fward"].forEach(function(i){$(i).value=""});REV=0;TS=0;SIG=null;QP=0;CID=null;ST=null;last=null;$("out").style.display="none";$("peek").hidden=true;count()}
 $("fnew").onclick=function(){resetForm();__wz.start(0)};
 function later(){clearTimeout(tmP);tmP=setTimeout(peekNow,250);clearTimeout(tmS);tmS=setTimeout(saveFile,700)}
 document.querySelector("#tool").addEventListener("input",later);document.querySelector("#tool").addEventListener("change",later);
@@ -102,15 +110,30 @@ function peekNow(){if(!$("age").value||!Object.keys(sel("sym")).length){$("peek"
 var SV=function(p){return'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>'},TI={light:SV('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/>'),dark:SV('<path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/>'),auto:SV('<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 010 16z" fill="currentColor"/>')};var TH=["light","dark","auto"];function setTheme(t){try{localStorage.setItem("acticheck_theme",t)}catch(e){}if(t==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",t);$("theme").innerHTML=TI[t];$("theme").setAttribute("aria-label","Appearance: "+t+". Tap to switch light, dark or auto.");$("theme").title="Appearance: "+t}
 var cur="light";try{cur=localStorage.getItem("acticheck_theme")||"light"}catch(e){}setTheme(cur);$("theme").onclick=function(){cur=TH[(TH.indexOf(cur)+1)%3];setTheme(cur)};
 renderFiles();
-function applyCase(c){document.querySelectorAll("#sym input,#ctx input,#tst input").forEach(function(i){i.checked=false});
+function applyCase(c){FREEZE=true;REV=c.rv||0;TS=c.ts||0;document.querySelectorAll("#sym input,#ctx input,#tst input").forEach(function(i){i.checked=false});
 (c.s||[]).forEach(function(k){var e=document.querySelector('#sym input[data-k="'+k+'"]');if(e)e.checked=true});
 (c.c||[]).forEach(function(k){var e=document.querySelector('#ctx input[data-k="'+k+'"]');if(e)e.checked=true});
 (c.t||[]).forEach(function(k){var e=document.querySelector('#tst input[data-k="'+k+'"]');if(e)e.checked=true});
 $("age").value=c.a||"";$("dur").value=c.d||"";var x=c.x||{};["t","p","r","s","d","o","w","h","g"].forEach(function(k){$("v-"+k).value=x[k]!==undefined?x[k]:""});$("v-gu").value=x.gu||"";
-$("fname").value=c.n||"";$("fward").value=c.w||"";count();CID=c.id||newId();if(c.a){KEEP=true;$("run").click();if(c.fi){$("final").value=c.fi;if(last)last.final=c.fi}if(ST){ST.adj=c.f||{};renderDx()}}else{ST=null;$("out").style.display="none";__wz.start(0)}saveFile()}
-$("scan").onclick=function(){CASEQR.scan(applyCase)};
+$("fname").value=c.n||"";$("fward").value=c.w||"";count();CID=c.id||newId();if(c.a){KEEP=true;$("run").click();if(c.fi){$("final").value=c.fi;if(last)last.final=c.fi}if(ST){ST.adj=c.f||{};renderDx()}}else{ST=null;$("out").style.display="none";__wz.start(0)}saveFile();FREEZE=false;SIG=JSON.stringify(gatherRaw())}
+function onScanned(c){var loc=fstore().filter(function(x){return x.id===c.id})[0];
+if(loc&&(loc.d.ts||0)>(c.ts||0)){if(confirm("You already have a newer copy of "+(loc.d.n||"this case")+" on this phone (made "+fmt(loc.d.ts)+", version "+(loc.d.rv||1)+"). The QR is from "+fmt(c.ts)+" (version "+(c.rv||1)+").\n\nOK: open your newer copy.\nCancel: open the QR copy as a separate file.")){applyCase(loc.d);return}c=JSON.parse(JSON.stringify(c));c.id=newId();c.n=(c.n||"Case")+" (older copy)"}
+applyCase(c)}
+$("scan").onclick=function(){CASEQR.scan(onScanned)};
 $("qrcopy").onclick=function(){if(!ST)return;var t=ST.code;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){$("qrmsg").textContent="Code copied."},function(){window.prompt("Copy this case code",t)})};
 $("qrdl").onclick=function(){if(!ST)return;var l=document.createElement("a");l.href=URL.createObjectURL(new Blob([CASEQR.svg(ST.code)],{type:"image/svg+xml"}));l.download="acticheck-case-"+CID+".svg";document.body.appendChild(l);l.click();l.remove()};
+function link(){return location.origin+location.pathname}
+function pimg(svg){return new Promise(function(ok){var im=new Image();im.onload=function(){ok(im)};im.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg)})}
+function cardPng(){var P=ST.parts,d=gather(),W=720,m=P.length>1,pw=m?300:420,rows=m?Math.ceil(P.length/2):1,H=250+rows*(pw+60)+150;
+return Promise.all(P.map(function(p){return pimg(CASEQR.svg(p))})).then(function(ims){var c=document.createElement("canvas");c.width=W;c.height=H;var x=c.getContext("2d"),F=" Manrope,Arial,sans-serif";x.fillStyle="#fff";x.fillRect(0,0,W,H);x.fillStyle="#12273b";x.font="800 30px"+F;x.fillText("ACTICHECK PATIENT CARD",40,60);x.font="800 40px"+F;x.fillText(d.n||("Case "+CID),40,118,640);x.font="600 22px"+F;x.fillStyle="#4d6178";x.fillText((d.w?d.w+" \u00b7 ":"")+"Case "+CID,40,156,640);x.fillText("Made "+fmt(d.ts)+" \u00b7 version "+d.rv,40,190);
+ims.forEach(function(im,i){var xx=m?40+(i%2)*340:(W-pw)/2,yy=220+(m?Math.floor(i/2):0)*(pw+60);x.drawImage(im,xx,yy,pw,pw);if(m){x.font="700 20px"+F;x.fillStyle="#12273b";x.fillText("Part "+(i+1)+" of "+P.length,xx,yy+pw+28)}});
+x.fillStyle="#4d6178";x.font="600 20px"+F;var y0=H-110;x.fillText("Scan in ActiCheck, even offline: Scan a case QR.",40,y0,640);x.fillText(link(),40,y0+32,640);x.fillText("Holds symptoms, vitals and findings. Treat as patient data.",40,y0+64,640);
+return new Promise(function(ok){c.toBlob(ok)})})}
+function shareText(){var d=gather();return(d.n?d.n+"\n":"")+"ActiCheck patient card, made "+fmt(d.ts)+" (version "+d.rv+")\nOpen ActiCheck: "+link()+"\nScan the QR in the image, or tap Scan a case QR and paste:\n"+ST.parts.map(function(p,i){return(ST.parts.length>1?"Part "+(i+1)+":\n":"")+p}).join("\n")}
+function dl(b,n){var l=document.createElement("a");l.href=URL.createObjectURL(b);l.download=n;document.body.appendChild(l);l.click();l.remove()}
+$("qrdl").onclick=function(){if(ST&&ST.parts)cardPng().then(function(b){dl(b,"acticheck-"+fname()+".png")})};
+$("qrwa").onclick=function(){if(!ST||!ST.parts)return;cardPng().then(function(b){var f=new File([b],"acticheck-"+fname()+".png",{type:"image/png"});if(navigator.canShare&&navigator.canShare({files:[f]}))navigator.share({files:[f],title:"ActiCheck patient card",text:shareText()}).catch(function(){});else{dl(b,"acticheck-"+fname()+".png");window.open("https://wa.me/?text="+encodeURIComponent(shareText()),"_blank")}})};
+$("qrpr").onclick=function(){if(!ST||!ST.parts)return;var d=gather();$("pc").innerHTML="<h1>ACTICHECK PATIENT CARD</h1><h2>"+esc(d.n||"Case "+CID)+"</h2><p>"+(d.w?esc(d.w)+" &middot; ":"")+"Case "+CID+" &middot; Made "+esc(fmt(d.ts))+" &middot; version "+d.rv+'</p><div class="pcq">'+ST.parts.map(function(p,i){return"<div>"+CASEQR.svg(p)+(ST.parts.length>1?"<b>Part "+(i+1)+" of "+ST.parts.length+"</b>":"")+"</div>"}).join("")+"</div><p>Scan in ActiCheck, even offline: Scan a case QR.<br>"+esc(link())+"</p><p>Holds symptoms, vitals and findings. Treat as patient data.</p>";window.print()};
 $("run").onclick=function(){
 if(!DRY){if(last&&last.final&&!KEEP)CID=null;KEEP=false}var s=sel("sym"),c=sel("ctx"),t=sel("tst"),age=$("age").value,dur=$("dur").value,keys={};
 $("age-err").hidden=!!age;if(!age){if(window.__wz)__wz.start(0);$("age-err").scrollIntoView();return}
@@ -177,4 +200,17 @@ var standalone=(window.matchMedia&&matchMedia("(display-mode: standalone)").matc
 window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__ip=e});
 $("inst").onclick=function(){HOW.open(ios?"ios":"and")};if(standalone)$("inst").hidden=true;
 try{if(!standalone&&!localStorage.getItem("acticheck_guide_seen"))setTimeout(function(){HOW.open(ios?"ios":"and")},1500)}catch(e){}
+
+// ---- pages: home is its own first page; files, clerking and results follow it
+var CURV="home",SILENT=false,TT={files:"Patient files",wiz:"Clerking",out:"Results"};
+function viewNow(){if(document.body.classList.contains("onhome"))return"home";if(!$("fhome").hidden)return"files";if(!$("wiz").hidden)return"wiz";return $("out").style.display==="block"?"out":"files"}
+function paint(){var v=CURV;$("ptitle").textContent=TT[v]||"";window.scrollTo(0,0)}
+function applyView(v){SILENT=true;if(v==="home")document.body.classList.add("onhome");else{document.body.classList.remove("onhome");
+$("fhome").hidden=v!=="files";$("wiz").hidden=v!=="wiz";$("out").style.display=(v==="out"&&ST)?"block":"none";if(v==="out"&&!ST){$("fhome").hidden=false;v="files"}}
+CURV=v;paint();setTimeout(function(){SILENT=false},0)}
+new MutationObserver(function(){if(SILENT)return;var v=viewNow();if(v!==CURV){CURV=v;history.pushState({v:v},"","#"+v);paint()}}).observe(document.body,{attributes:true,subtree:true,attributeFilter:["hidden","class","style"]});
+window.addEventListener("popstate",function(e){var v=(e.state&&e.state.v)||"home";if(v==="wiz"&&$("wiz").hidden&&!fstore().length&&!$("fname").value)v="home";applyView(v)});
+history.replaceState({v:"home"},"","#home");
+$("back").onclick=function(){if(history.state&&history.state.v&&history.state.v!=="home")history.back();else applyView("home")};
+$("start").onclick=function(){if(fstore().length){document.body.classList.remove("onhome");wzHome()}else{resetForm();document.body.classList.remove("onhome");__wz.start(0)}};
 })();
