@@ -71,8 +71,8 @@ else if(hd){var m=hd.closest(".dx").dataset.n;ST.open[m]=!ST.open[m];renderDx()}
 var CID=null,KEEP=false,DRY=false,tmP,tmS;
 function newId(){var c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",s="";for(var i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)];return s}
 function gatherRaw(){var v={};["t","p","r","s","d","o","w","h","g"].forEach(function(k){var x=$("v-"+k).value;if(x!=="")v[k]=x});if($("v-gu").value)v.gu=$("v-gu").value;
-return{v:1,id:CID,n:$("fname").value.trim(),w:$("fward").value.trim(),fi:last?last.final:"",a:$("age").value,d:$("dur").value,s:Object.keys(sel("sym")),c:Object.keys(sel("ctx")),t:Object.keys(sel("tst")),x:v,f:ST?ST.adj:{}}}
-var REV=0,TS=0,SIG=null,FREEZE=false,QP=0;
+return{v:1,id:CID,n:$("fname").value.trim(),w:$("fward").value.trim(),fi:last?last.final:"",a:$("age").value,d:$("dur").value,s:Object.keys(sel("sym")),c:Object.keys(sel("ctx")),t:Object.keys(sel("tst")),x:v,f:ST?ST.adj:{},pn:Math.max(PHN,RPN)}}
+var REV=0,TS=0,SIG=null,FREEZE=false,QP=0,PHN=0,RPN=0,PHFOR=null;
 function gather(){var d=gatherRaw();if(!FREEZE){var g=JSON.stringify(d);if(g!==SIG){SIG=g;REV++;TS=Date.now()}}d.rv=REV;d.ts=TS;return d}
 function fmt(t){return t?new Date(t).toLocaleString([],{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"unknown time"}
 function esc(x){return String(x==null?"":x).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
@@ -80,7 +80,7 @@ function split(t,d){if(t.length<=520)return[t];var n=Math.ceil(t.length/480),o=[
 function drawQR(){var n=ST.parts.length;$("qrbox").innerHTML=CASEQR.svg(ST.parts[QP]);$("qrpg").hidden=n<2;$("qrpn").textContent="Part "+(QP+1)+" of "+n}
 function setCode(t,d){ST.code=t;ST.parts=split(t,d);if(QP>=ST.parts.length)QP=0;drawQR();$("qrts").textContent="Made "+fmt(d.ts)+" \u00b7 version "+d.rv+(ST.parts.length>1?" \u00b7 "+ST.parts.length+" QR codes":"")}
 $("qrprev").onclick=function(){if(ST&&ST.parts){QP=(QP+ST.parts.length-1)%ST.parts.length;drawQR()}};$("qrnext").onclick=function(){if(ST&&ST.parts){QP=(QP+1)%ST.parts.length;drawQR()}};
-function updQR(){if(!ST)return;if(!CID)CID=newId();var d=gather(),pin=$("pinon").checked?$("pin").value:"",nm=d.n;$("qrid").textContent=(nm?nm+" \u00b7 ":"")+"Case "+CID;
+function updQR(){if(!ST)return;if(!CID)CID=newId();if(PHFOR!==CID){PHFOR=CID;renderPh()}var d=gather(),pin=$("pinon").checked?$("pin").value:"",nm=d.n;$("qrid").textContent=(nm?nm+" \u00b7 ":"")+"Case "+CID;
 if($("pinon").checked&&pin.length<4){ST.code="";ST.parts=null;$("qrbox").innerHTML="";$("qrpg").hidden=true;$("qrts").textContent="";$("pinmsg").textContent="Enter a PIN of 4 to 8 digits to create the locked QR.";return}
 $("pinmsg").textContent=$("pinon").checked?"Locked. Share the PIN separately, never with the QR.":"";
 (pin?CASEQR.encodeAsync(d,pin):Promise.resolve(CASEQR.encode(d))).then(function(t){setCode(t,d)}).catch(function(){$("pinmsg").textContent="Could not lock. Try again."})}
@@ -95,13 +95,13 @@ function fstore(){try{return JSON.parse(localStorage.getItem("acticheck_files")|
 function saveFile(){if(!$("fname").value.trim())return;if(!CID)CID=newId();var d=gather(),a=fstore(),r={id:CID,t:Date.now(),st:(d.fi&&d.fi!=="Not confirmed yet")?"Confirmed":"Draft",d:d},i=a.map(function(x){return x.id}).indexOf(CID);if(i<0)a.push(r);else a[i]=r;try{localStorage.setItem("acticheck_files",JSON.stringify(a))}catch(e){}renderFiles()}
 function renderFiles(){var q=$("fsearch").value.toLowerCase(),a=fstore().filter(function(r){return!q||(r.d.n||"").toLowerCase().indexOf(q)>-1}).sort(function(x,y){return y.t-x.t}),h="";
 if(!a.length)h='<p class="ew">'+(q?"No files match.":"No files yet. Name a file below to save it here.")+'</p>';
-a.forEach(function(r){var d=r.d;h+='<button class="fc" data-id="'+r.id+'"><div class="fct"><span>'+d.n+'</span><span class="st'+(r.st==="Confirmed"?" cf":"")+'">'+r.st+'</span></div><div class="fcs">'+(d.w?esc(d.w)+" \u00b7 ":"")+({adult:"Adult",child:"Child",infant:"Infant"}[d.a]||"Age not set")+" \u00b7 "+(d.s||[]).length+" symptoms"+(d.fi?" \u00b7 "+esc(d.fi):"")+'</div><div class="fcs">'+new Date(r.t).toLocaleString([],{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})+'</div></button><button class="fx" data-del="'+r.id+'">Delete file</button>'});
+a.forEach(function(r){var d=r.d;h+='<button class="fc" data-id="'+r.id+'"><div class="fct"><span>'+d.n+'</span><span class="st'+(r.st==="Confirmed"?" cf":"")+'">'+r.st+'</span></div><div class="fcs">'+(d.w?esc(d.w)+" \u00b7 ":"")+({adult:"Adult",child:"Child",infant:"Infant"}[d.a]||"Age not set")+" \u00b7 "+(d.s||[]).length+" symptoms"+(d.pn?" \u00b7 "+d.pn+" photos":"")+(d.fi?" \u00b7 "+esc(d.fi):"")+'</div><div class="fcs">'+new Date(r.t).toLocaleString([],{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})+'</div></button><button class="fx" data-del="'+r.id+'">Delete file</button>'});
 $("flist").innerHTML=h}
 $("flist").addEventListener("click",function(e){var dl=e.target.closest("[data-del]"),fc=e.target.closest(".fc");
 if(dl){if(confirm("Delete this file from this phone?")){localStorage.setItem("acticheck_files",JSON.stringify(fstore().filter(function(r){return r.id!==dl.dataset.del})));renderFiles()}}
 else if(fc){var r=fstore().filter(function(x){return x.id===fc.dataset.id})[0];if(r){applyCase(r.d);$("fname").scrollIntoView()}}});
 $("fsearch").oninput=renderFiles;
-function resetForm(){document.querySelectorAll("#sym input,#ctx input,#tst input").forEach(function(i){i.checked=false});["age","dur","v-gu"].forEach(function(i){$(i).value=""});["v-t","v-p","v-r","v-s","v-d","v-o","v-w","v-h","v-g","fname","fward"].forEach(function(i){$(i).value=""});REV=0;TS=0;SIG=null;QP=0;CID=null;ST=null;last=null;$("out").style.display="none";$("peek").hidden=true;count()}
+function resetForm(){document.querySelectorAll("#sym input,#ctx input,#tst input").forEach(function(i){i.checked=false});["age","dur","v-gu"].forEach(function(i){$(i).value=""});["v-t","v-p","v-r","v-s","v-d","v-o","v-w","v-h","v-g","fname","fward"].forEach(function(i){$(i).value=""});REV=0;TS=0;SIG=null;QP=0;PHN=0;RPN=0;PHFOR=null;CID=null;ST=null;last=null;$("out").style.display="none";$("peek").hidden=true;count()}
 $("fnew").onclick=function(){resetForm();__wz.start(0)};
 function later(){clearTimeout(tmP);tmP=setTimeout(peekNow,250);clearTimeout(tmS);tmS=setTimeout(saveFile,700)}
 document.querySelector("#tool").addEventListener("input",later);document.querySelector("#tool").addEventListener("change",later);
@@ -110,7 +110,7 @@ function peekNow(){if(!$("age").value||!Object.keys(sel("sym")).length){$("peek"
 var SV=function(p){return'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>'},TI={light:SV('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/>'),dark:SV('<path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/>'),auto:SV('<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 010 16z" fill="currentColor"/>')};var TH=["light","dark","auto"];function setTheme(t){try{localStorage.setItem("acticheck_theme",t)}catch(e){}if(t==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",t);$("theme").innerHTML=TI[t];$("theme").setAttribute("aria-label","Appearance: "+t+". Tap to switch light, dark or auto.");$("theme").title="Appearance: "+t}
 var cur="light";try{cur=localStorage.getItem("acticheck_theme")||"light"}catch(e){}setTheme(cur);$("theme").onclick=function(){cur=TH[(TH.indexOf(cur)+1)%3];setTheme(cur)};
 renderFiles();
-function applyCase(c){FREEZE=true;REV=c.rv||0;TS=c.ts||0;document.querySelectorAll("#sym input,#ctx input,#tst input").forEach(function(i){i.checked=false});
+function applyCase(c){RPN=c.pn||0;PHFOR=null;FREEZE=true;REV=c.rv||0;TS=c.ts||0;document.querySelectorAll("#sym input,#ctx input,#tst input").forEach(function(i){i.checked=false});
 (c.s||[]).forEach(function(k){var e=document.querySelector('#sym input[data-k="'+k+'"]');if(e)e.checked=true});
 (c.c||[]).forEach(function(k){var e=document.querySelector('#ctx input[data-k="'+k+'"]');if(e)e.checked=true});
 (c.t||[]).forEach(function(k){var e=document.querySelector('#tst input[data-k="'+k+'"]');if(e)e.checked=true});
@@ -134,6 +134,41 @@ function dl(b,n){var l=document.createElement("a");l.href=URL.createObjectURL(b)
 $("qrdl").onclick=function(){if(ST&&ST.parts)cardPng().then(function(b){dl(b,"acticheck-"+fname()+".png")})};
 $("qrwa").onclick=function(){if(!ST||!ST.parts)return;cardPng().then(function(b){var f=new File([b],"acticheck-"+fname()+".png",{type:"image/png"});if(navigator.canShare&&navigator.canShare({files:[f]}))navigator.share({files:[f],title:"ActiCheck patient card",text:shareText()}).catch(function(){});else{dl(b,"acticheck-"+fname()+".png");window.open("https://wa.me/?text="+encodeURIComponent(shareText()),"_blank")}})};
 $("qrpr").onclick=function(){if(!ST||!ST.parts)return;var d=gather();$("pc").innerHTML="<h1>ACTICHECK PATIENT CARD</h1><h2>"+esc(d.n||"Case "+CID)+"</h2><p>"+(d.w?esc(d.w)+" &middot; ":"")+"Case "+CID+" &middot; Made "+esc(fmt(d.ts))+" &middot; version "+d.rv+'</p><div class="pcq">'+ST.parts.map(function(p,i){return"<div>"+CASEQR.svg(p)+(ST.parts.length>1?"<b>Part "+(i+1)+" of "+ST.parts.length+"</b>":"")+"</div>"}).join("")+"</div><p>Scan in ActiCheck, even offline: Scan a case QR.<br>"+esc(link())+"</p><p>Holds symptoms, vitals and findings. Treat as patient data.</p>";window.print()};
+
+// ---- test result photos (stored on the phone, travel in a full file)
+var DB=null;
+function idb(){return DB||(DB=new Promise(function(ok,no){var r=indexedDB.open("acticheck",1);r.onupgradeneeded=function(){r.result.createObjectStore("ph",{keyPath:"id"}).createIndex("cid","cid")};r.onsuccess=function(){ok(r.result)};r.onerror=no}))}
+function phAll(cid){return idb().then(function(d){return new Promise(function(ok){var q=d.transaction("ph").objectStore("ph").index("cid").getAll(cid);q.onsuccess=function(){ok(q.result.sort(function(x,y){return x.t-y.t}))};q.onerror=function(){ok([])}})}).catch(function(){return[]})}
+function phPut(r){return idb().then(function(d){return new Promise(function(ok){var t=d.transaction("ph","readwrite");t.objectStore("ph").put(r);t.oncomplete=ok;t.onerror=ok})})}
+function phDel(id){return idb().then(function(d){return new Promise(function(ok){var t=d.transaction("ph","readwrite");t.objectStore("ph").delete(id);t.oncomplete=ok})})}
+function squeeze(f){return new Promise(function(ok){var im=new Image(),u=URL.createObjectURL(f),done=false;function fin(b){if(!done){done=true;ok(b||f)}}
+im.onload=function(){try{var m=1280,s=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);var x=c.getContext("2d");if(!x)return fin();x.drawImage(im,0,0,c.width,c.height);c.toBlob(function(b){fin(b&&b.size<f.size?b:f)},"image/jpeg",.72)}catch(e){fin()}};im.onerror=function(){fin()};setTimeout(fin,8000);im.src=u})}
+var PU=[];
+function renderPh(){if(!CID){PHN=0;$("phgrid").innerHTML="";return}var cid=CID;phAll(cid).then(function(rs){if(cid!==CID)return;PHN=rs.length;PU.forEach(function(u){URL.revokeObjectURL(u)});PU=[];
+$("phgrid").innerHTML=rs.map(function(r){var u=URL.createObjectURL(r.blob);PU.push(u);return'<div class="pht"><button class="phb" data-id="'+r.id+'" aria-label="View photo"><img src="'+u+'" alt="'+esc(r.l||"Test result photo")+'"></button><span>'+esc(r.l||"Photo")+'</span><button class="phx" data-x="'+r.id+'" aria-label="Delete photo">&times;</button></div>'}).join("");
+$("phmsg").textContent=RPN>PHN?"This case came with "+RPN+" photo"+(RPN>1?"s":"")+" that are not on this phone. Ask the sender for the full file.":""})}
+function addPh(files){if(!files.length)return;if(!$("fname").value.trim()){$("phmsg").textContent="Name the file first (Patient step), so the photos stay with it.";return}if(!CID)CID=newId();var lab=prompt("What are these? For example: Malaria test, blood count (optional)")||"";$("phmsg").textContent="Saving...";
+var cid=CID;Promise.all([].map.call(files,function(f){return squeeze(f).then(function(b){return phPut({id:newId()+newId(),cid:cid,l:lab.trim(),t:Date.now(),blob:b})})})).then(function(){$("phmsg").textContent="";renderPh();setTimeout(function(){updQR();saveFile()},400)})}
+$("phcam").onchange=function(){addPh(this.files);this.value=""};$("phgal").onchange=function(){addPh(this.files);this.value=""};
+$("phgrid").addEventListener("click",function(e){var x=e.target.closest("[data-x]"),b=e.target.closest(".phb");
+if(x){if(confirm("Delete this photo?"))phDel(x.dataset.x).then(function(){renderPh();setTimeout(function(){updQR();saveFile()},400)})}
+else if(b){var im=b.querySelector("img");$("phvi").src=im.src;$("phvc").textContent=im.alt;$("phv").hidden=false}});
+$("phvx").onclick=function(){$("phv").hidden=true};$("phv").onclick=function(e){if(e.target===this)this.hidden=true};
+// full file: case plus photos in one file, optionally locked with the PIN
+function blobData(b){return new Promise(function(ok){var r=new FileReader();r.onload=function(){ok(r.result)};r.readAsDataURL(b)})}
+function dataBlob(u){var p=u.split(","),m=/data:([^;]+)/.exec(p[0]),bs=atob(p[1]),n=new Uint8Array(bs.length);for(var i=0;i<bs.length;i++)n[i]=bs.charCodeAt(i);return new Blob([n],{type:m?m[1]:"image/jpeg"})}
+$("qrfull").onclick=function(){if(!ST)return;var d=gather(),pin=$("pinon").checked?$("pin").value:"",cid=CID;if($("pinon").checked&&pin.length<4){$("qrmsg").textContent="Enter a PIN of 4 to 8 digits first.";return}$("qrmsg").textContent="Preparing the full file...";
+phAll(cid).then(function(rs){return Promise.all(rs.map(function(r){return blobData(r.blob).then(function(u){return{id:r.id,l:r.l,t:r.t,u:u}})}))}).then(function(ps){var bun={v:1,fmt:"acticheck-file",c:d,p:ps};return pin?CASEQR.encodeAsync(bun,pin):JSON.stringify(bun)}).then(function(txt){var n="acticheck-"+fname()+".acticheck",f=new File([txt],n,{type:"application/octet-stream"});$("qrmsg").textContent="";
+if(navigator.canShare&&navigator.canShare({files:[f]}))navigator.share({files:[f],title:"ActiCheck full file",text:"ActiCheck full file for "+(d.n||"a patient")+" with "+ps0(txt)+". Open ActiCheck, go to Patient files, tap Open a full file."}).catch(function(){});else dl(f,n)})};
+function ps0(t){return"photos included"}
+$("fimp").onchange=function(){var f=this.files[0];this.value="";if(!f)return;var r=new FileReader();r.onload=function(){var t=String(r.result).trim();
+(t.indexOf("ACTI2:")===0?CASEQR.decodeAsync(t,prompt("This file is locked. Enter the PIN")||""):Promise.resolve(JSON.parse(t))).then(function(b){if(!b||b.fmt!=="acticheck-file"||!b.c)throw 0;
+return Promise.all((b.p||[]).map(function(p){return phPut({id:p.id,cid:b.c.id,l:p.l,t:p.t,blob:dataBlob(p.u)})})).then(function(){b.c.pn=(b.p||[]).length;onScanned(b.c)})}).catch(function(){alert("That file could not be opened. Check the PIN and try again.")})};r.readAsText(f)};
+// welcome for new users, then the home screen guide
+function welcome(){var w=document.createElement("div");w.className="wl";w.setAttribute("role","dialog");w.setAttribute("aria-modal","true");w.setAttribute("aria-label","Welcome");
+w.innerHTML='<div class="wlc"><h3>Hello. Are you new to ActiCheck?</h3><p>If you are, I will show you how to add it to your home screen. Then it opens like a normal app and works without internet.</p><button class="b b1" id="wly">Yes, I am new<i>&#8594;</i></button><button class="b b2" id="wln">No, I know it<i>&#8594;</i></button></div>';document.body.appendChild(w);
+function cl(){w.remove()}$("wly").onclick=function(){cl();HOW.open(ios?"ios":"and")};$("wln").onclick=function(){try{localStorage.setItem("acticheck_guide_seen","1")}catch(e){}cl()};$("wly").focus();
+document.addEventListener("keydown",function k(e){if(e.key==="Escape"){cl();document.removeEventListener("keydown",k)}})}
 $("run").onclick=function(){
 if(!DRY){if(last&&last.final&&!KEEP)CID=null;KEEP=false}var s=sel("sym"),c=sel("ctx"),t=sel("tst"),age=$("age").value,dur=$("dur").value,keys={};
 $("age-err").hidden=!!age;if(!age){if(window.__wz)__wz.start(0);$("age-err").scrollIntoView();return}
@@ -199,7 +234,7 @@ $("edit").onclick=function(){$("out").style.display="none";__wz.start(4)};$("tof
 var standalone=(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone,ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__ip=e});
 $("inst").onclick=function(){HOW.open(ios?"ios":"and")};if(standalone)$("inst").hidden=true;
-try{if(!standalone&&!localStorage.getItem("acticheck_guide_seen"))setTimeout(function(){HOW.open(ios?"ios":"and")},1500)}catch(e){}
+try{if(!standalone&&!localStorage.getItem("acticheck_guide_seen"))setTimeout(welcome,1200)}catch(e){}
 
 // ---- pages: home is its own first page; files, clerking and results follow it
 var CURV="home",SILENT=false,TT={files:"Patient files",wiz:"Clerking",out:"Results"};
