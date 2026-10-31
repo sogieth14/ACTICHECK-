@@ -110,15 +110,17 @@ function peekNow(){if(!$("age").value||!Object.keys(sel("sym")).length){$("peek"
 var SV=function(p){return'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>'},TI={light:SV('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/>'),dark:SV('<path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/>'),auto:SV('<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 010 16z" fill="currentColor"/>')};var TH=["light","dark","auto"];function setTheme(t){try{localStorage.setItem("acticheck_theme",t)}catch(e){}if(t==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",t);$("theme").innerHTML=TI[t];$("theme").setAttribute("aria-label","Appearance: "+t+". Tap to switch light, dark or auto.");$("theme").title="Appearance: "+t}
 var cur="light";try{cur=localStorage.getItem("acticheck_theme")||"light"}catch(e){}setTheme(cur);$("theme").onclick=function(){cur=TH[(TH.indexOf(cur)+1)%3];setTheme(cur)};
 renderFiles();
-function applyCase(c){RPN=c.pn||0;PHFOR=null;FREEZE=true;REV=c.rv||0;TS=c.ts||0;document.querySelectorAll("#sym input,#ctx input,#tst input").forEach(function(i){i.checked=false});
+function applyCase(c){var sb=$("scb");if(sb)sb.hidden=true;RPN=c.pn||0;PHFOR=null;FREEZE=true;REV=c.rv||0;TS=c.ts||0;document.querySelectorAll("#sym input,#ctx input,#tst input").forEach(function(i){i.checked=false});
 (c.s||[]).forEach(function(k){var e=document.querySelector('#sym input[data-k="'+k+'"]');if(e)e.checked=true});
 (c.c||[]).forEach(function(k){var e=document.querySelector('#ctx input[data-k="'+k+'"]');if(e)e.checked=true});
 (c.t||[]).forEach(function(k){var e=document.querySelector('#tst input[data-k="'+k+'"]');if(e)e.checked=true});
 $("age").value=c.a||"";$("dur").value=c.d||"";var x=c.x||{};["t","p","r","s","d","o","w","h","g"].forEach(function(k){$("v-"+k).value=x[k]!==undefined?x[k]:""});$("v-gu").value=x.gu||"";
 $("fname").value=c.n||"";$("fward").value=c.w||"";count();CID=c.id||newId();if(c.a){KEEP=true;$("run").click();if(c.fi){$("final").value=c.fi;if(last)last.final=c.fi}if(ST){ST.adj=c.f||{};renderDx()}}else{ST=null;$("out").style.display="none";__wz.start(0)}saveFile();FREEZE=false;SIG=JSON.stringify(gatherRaw())}
 function onScanned(c){var loc=fstore().filter(function(x){return x.id===c.id})[0];
-if(loc&&(loc.d.ts||0)>(c.ts||0)){if(confirm("You already have a newer copy of "+(loc.d.n||"this case")+" on this phone (made "+fmt(loc.d.ts)+", version "+(loc.d.rv||1)+"). The QR is from "+fmt(c.ts)+" (version "+(c.rv||1)+").\n\nOK: open your newer copy.\nCancel: open the QR copy as a separate file.")){applyCase(loc.d);return}c=JSON.parse(JSON.stringify(c));c.id=newId();c.n=(c.n||"Case")+" (older copy)"}
-applyCase(c)}
+if(loc&&(loc.d.ts||0)>(c.ts||0)){if(confirm("You already have a newer copy of "+(loc.d.n||"this case")+" on this phone (made "+fmt(loc.d.ts)+", version "+(loc.d.rv||1)+"). The QR is from "+fmt(c.ts)+" (version "+(c.rv||1)+").\n\nOK: open your newer copy.\nCancel: open the QR copy as a separate file.")){applyCase(loc.d);shown(loc.d," (you already had a newer copy)");return}c=JSON.parse(JSON.stringify(c));c.id=newId();c.n=(c.n||"Case")+" (older copy)"}
+applyCase(c);shown(c,c.n.slice(-12)==="(older copy)"?" (saved as a separate file)":"")}
+var tmT;
+function shown(c,note){document.body.classList.remove("onhome");if(!c.a){try{__wz.start(0)}catch(e){}}var m="Opened from QR: "+(c.n||"case "+c.id)+" \u00b7 version "+(c.rv||1)+(note||"");var t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(tmT);tmT=setTimeout(function(){t.classList.remove("on")},5500);var b=$("scb");if(b){b.textContent=m;b.hidden=false}}
 $("scan").onclick=function(){CASEQR.scan(onScanned)};
 $("qrcopy").onclick=function(){if(!ST)return;var t=ST.code;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){$("qrmsg").textContent="Code copied."},function(){window.prompt("Copy this case code",t)})};
 $("qrdl").onclick=function(){if(!ST)return;var l=document.createElement("a");l.href=URL.createObjectURL(new Blob([CASEQR.svg(ST.code)],{type:"image/svg+xml"}));l.download="acticheck-case-"+CID+".svg";document.body.appendChild(l);l.click();l.remove()};
@@ -234,7 +236,7 @@ $("edit").onclick=function(){$("out").style.display="none";__wz.start(4)};$("tof
 var standalone=(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone,ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__ip=e});
 $("inst").onclick=function(){HOW.open(ios?"ios":"and")};if(standalone)$("inst").hidden=true;
-try{if(!standalone&&!localStorage.getItem("acticheck_guide_seen"))setTimeout(welcome,1200)}catch(e){}
+try{if(!standalone&&!localStorage.getItem("acticheck_guide_seen"))setTimeout(welcome,1200);else if(standalone&&!localStorage.getItem("acticheck_tour_seen"))setTimeout(function(){HOW.open()},1200)}catch(e){}
 
 // ---- pages: home is its own first page; files, clerking and results follow it
 var CURV="home",SILENT=false,TT={files:"Patient files",wiz:"Clerking",out:"Results"};
