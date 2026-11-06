@@ -1,0 +1,1 @@
+try{var __t=localStorage.getItem("acticheck_theme")||"light";if(__t!=="auto")document.documentElement.setAttribute("data-theme",__t)}catch(e){document.documentElement.setAttribute("data-theme","light")}
