@@ -130,10 +130,10 @@ $("qrwa").onclick=function(){if(ST&&ST.code)window.open("https://wa.me/?text="+e
 // files
 function fstore(){try{return JSON.parse(localStorage.getItem("acticheck_files")||"[]")}catch(e){return[]}}
 function saveFile(){if(!$("fname").value.trim())return;if(!CID)CID=newId();var d=gather(),a=fstore(),r={id:CID,t:Date.now(),st:(d.fi&&d.fi!=="Not confirmed yet")?"Confirmed":"Draft",d:d},i=a.map(function(x){return x.id}).indexOf(CID);if(i<0)a.push(r);else a[i]=r;try{localStorage.setItem("acticheck_files",JSON.stringify(a))}catch(e){}renderFiles()}
-function renderFiles(){var q=$("fsearch").value.toLowerCase(),a=fstore().filter(function(r){return!q||(r.d.n||"").toLowerCase().indexOf(q)>-1}).sort(function(x,y){return y.t-x.t}),h="";
-if(!a.length)h='<p class="ew">'+(q?"No files match.":"No files yet. Name a file below to save it here.")+'</p>';
+function renderFiles(){var q=$("fsearch").value.toLowerCase(),a=fstore().filter(function(r){return(FIL==="all"||r.st===FIL)&&(!q||(r.d.n||"").toLowerCase().indexOf(q)>-1)}).sort(function(x,y){return y.t-x.t}),h="";
+if(!a.length)h='<p class="ew">'+(q||FIL!=="all"?"No cases match.":"No cases yet. Tap New case to start.")+'</p>';
 a.forEach(function(r){var d=r.d;h+='<button class="fc" data-id="'+esc(r.id)+'"><div class="fct"><span>'+esc(d.n)+'</span><span class="st'+(r.st==="Confirmed"?" cf":"")+'">'+r.st+'</span></div><div class="fcs">'+(d.w?esc(d.w)+" \u00b7 ":"")+({adult:"Adult",child:"Child",infant:"Infant"}[d.a]||"Age not set")+" \u00b7 "+(d.s||[]).length+" symptoms"+(d.pn?" \u00b7 "+d.pn+" photos":"")+(d.fi?" \u00b7 "+esc(d.fi):"")+'</div><div class="fcs">'+new Date(r.t).toLocaleString([],{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})+'</div></button><button class="fx" data-del="'+esc(r.id)+'">Delete file</button>'});
-$("flist").innerHTML=h}
+$("flist").innerHTML=h;if(typeof renderRecent==="function")renderRecent()}
 $("flist").addEventListener("click",function(e){var dl=e.target.closest("[data-del]"),fc=e.target.closest(".fc");
 if(dl){var all=fstore(),gone=all.filter(function(r){return r.id===dl.dataset.del})[0];if(!gone)return;localStorage.setItem("acticheck_files",JSON.stringify(all.filter(function(r){return r.id!==gone.id})));renderFiles();
 toast("Deleted "+(gone.d.n||"file"),function(){var cur=fstore();cur.push(gone);localStorage.setItem("acticheck_files",JSON.stringify(cur));renderFiles()},7000,function(){phAll(gone.id).then(function(rs){rs.forEach(function(r){phDel(r.id)})})})}
@@ -280,16 +280,31 @@ window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();win
 $("inst").onclick=function(){HOW.open(ios?"ios":"and")};if(standalone)$("inst").hidden=true;
 try{if(!standalone&&!localStorage.getItem("acticheck_guide_seen"))setTimeout(welcome,1200);else if(standalone&&!localStorage.getItem("acticheck_tour_seen"))setTimeout(function(){HOW.open()},1200)}catch(e){}
 
-// ---- pages: home is its own first page; files, clerking and results follow it
-var CURV="home",SILENT=false,TT={files:"Patient files",wiz:"Clerking",out:"Results"};
-function viewNow(){if(document.body.classList.contains("onhome"))return"home";if(!$("fhome").hidden)return"files";if(!$("wiz").hidden)return"wiz";return $("out").style.display==="block"?"out":"files"}
-function paint(){var v=CURV;$("ptitle").textContent=TT[v]||"";window.scrollTo(0,0)}
-function applyView(v){SILENT=true;if(v==="home")document.body.classList.add("onhome");else{document.body.classList.remove("onhome");
-$("fhome").hidden=v!=="files";$("wiz").hidden=v!=="wiz";$("out").style.display=(v==="out"&&ST)?"block":"none";if(v==="out"&&!ST){$("fhome").hidden=false;v="files"}}
-CURV=v;paint();setTimeout(function(){SILENT=false},0)}
-new MutationObserver(function(){if(SILENT)return;var v=viewNow();if(v!==CURV){CURV=v;history.pushState({v:v},"","#"+v);paint()}}).observe(document.body,{attributes:true,subtree:true,attributeFilter:["hidden","class","style"]});
+// ---- pages: three tabs (Home, Cases, Profile) with clerking and results opening over them
+var CURV="home",SILENT=false,TT={files:"Cases",wiz:"Clerking",out:"Results",profile:"Profile"},TABV={home:1,files:1,profile:1};
+function viewNow(){var c=document.body.classList;if(c.contains("onhome"))return"home";if(c.contains("onprofile"))return"profile";if(!$("fhome").hidden)return"files";if(!$("wiz").hidden)return"wiz";return $("out").style.display==="block"?"out":"files"}
+function paint(){var v=CURV;document.body.dataset.v=v;$("ptitle").textContent=TT[v]||"";document.querySelectorAll("#tabs .tab").forEach(function(t){var on=(t.dataset.tab==="home"&&v==="home")||(t.dataset.tab==="cases"&&v==="files")||(t.dataset.tab==="profile"&&v==="profile");t.classList.toggle("on",on);t.setAttribute("aria-current",on?"page":"false")});window.scrollTo(0,0)}
+function applyView(v){SILENT=true;var c=document.body.classList;c.toggle("onhome",v==="home");c.toggle("onprofile",v==="profile");
+if(v!=="home"&&v!=="profile"){$("fhome").hidden=v!=="files";$("wiz").hidden=v!=="wiz";$("out").style.display=(v==="out"&&ST)?"block":"none";if(v==="out"&&!ST){$("fhome").hidden=false;v="files"}}
+if(v==="files")renderFiles();CURV=v;paint();setTimeout(function(){SILENT=false},0)}
+new MutationObserver(function(){if(SILENT)return;var v=viewNow();if(v!==CURV){var was=CURV;CURV=v;if(TABV[v]&&TABV[was])history.replaceState({v:v},"","#"+v);else history.pushState({v:v},"","#"+v);paint()}}).observe(document.body,{attributes:true,subtree:true,attributeFilter:["hidden","class","style"]});
 window.addEventListener("popstate",function(e){var v=(e.state&&e.state.v)||"home";if(v==="wiz"&&$("wiz").hidden&&!fstore().length&&!$("fname").value)v="home";applyView(v)});
-history.replaceState({v:"home"},"","#home");
-$("back").onclick=function(){if(history.state&&history.state.v&&history.state.v!=="home")history.back();else applyView("home")};
-$("start").onclick=function(){if(fstore().length){document.body.classList.remove("onhome");wzHome()}else{resetForm();document.body.classList.remove("onhome");__wz.start(0)}};
+history.replaceState({v:"home"},"","#home");paint();
+$("back").onclick=function(){if(history.state&&history.state.v&&!TABV[history.state.v])history.back();else if(history.length>1&&CURV!=="home"&&(CURV==="wiz"||CURV==="out"))history.back();else applyView("home")};
+function goTab(t){if(t==="home"||t==="profile"){applyView(t);history.replaceState({v:CURV},"","#"+CURV)}else{document.body.classList.remove("onhome","onprofile");wzHome()}}
+document.querySelectorAll("#tabs .tab").forEach(function(b){b.onclick=function(){goTab(b.dataset.tab)}});
+$("viewall").onclick=function(){goTab("cases")};$("scanrow").onclick=function(){$("scan").click()};
+$("start").onclick=function(){resetForm();document.body.classList.remove("onhome","onprofile");__wz.start(0)};
+// recent cases on Home, filters and count on Cases
+var FIL="all";
+function recentHTML(r){var d=r.d;return'<button class="fc" data-id="'+esc(r.id)+'"><div class="fct"><span>'+esc(d.n)+'</span><span class="st'+(r.st==="Confirmed"?" cf":"")+'">'+r.st+'</span></div><div class="fcs">'+(d.w?esc(d.w)+" \u00b7 ":"")+({adult:"Adult",child:"Child",infant:"Infant"}[d.a]||"Age not set")+" \u00b7 "+(d.s||[]).length+" symptoms"+(d.fi?" \u00b7 "+esc(d.fi):"")+'</div><div class="fcs">'+new Date(r.t).toLocaleString([],{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})+'</div></button>'}
+function renderRecent(){var a=fstore().sort(function(x,y){return y.t-x.t}),n=$("tabn");$("hrec").innerHTML=a.length?a.slice(0,2).map(recentHTML).join(""):'<div class="fc" style="cursor:default"><div class="fct"><span>Nothing to continue yet</span></div><div class="fcs">Your saved cases will appear here.</div></div>';n.hidden=!a.length;n.textContent=a.length>99?"99+":a.length}
+$("hrec").addEventListener("click",function(e){var c=e.target.closest(".fc[data-id]");if(!c)return;var r=fstore().filter(function(x){return x.id===c.dataset.id})[0];if(r){document.body.classList.remove("onhome");applyCase(r.d)}});
+document.querySelectorAll(".fchip").forEach(function(b){b.onclick=function(){FIL=b.dataset.f;document.querySelectorAll(".fchip").forEach(function(x){var on=x===b;x.classList.toggle("on",on);x.setAttribute("aria-pressed",on)});renderFiles()}});
+// what's new
+var WN="0.5";function wnDot(){var s="";try{s=localStorage.getItem("acticheck_wn")||""}catch(e){}$("wndot").hidden=s===WN}
+(function(){var d=document.createElement("div");d.className="wns";d.id="wns";d.hidden=true;d.setAttribute("role","dialog");d.setAttribute("aria-modal","true");d.setAttribute("aria-label","What's new");
+d.innerHTML='<div class="wnc"><small>VERSION '+WN+'</small><h2>What\'s new</h2><div class="wnl"><div><b>Sign in with Google or email</b><span>Your account unlocks the app on any phone.</span></div><div><b>Home, Cases and Profile</b><span>A cleaner start screen and tabs at the bottom.</span></div><div><b>Photos with patient files</b><span>Attach test results so the whole file travels together.</span></div><div><b>Safer numbers</b><span>Impossible vitals are blocked and unusual ones are flagged.</span></div></div><button class="b b1" id="wnx" type="button">Got it<i>&#8594;</i></button></div>';document.body.appendChild(d);
+$("wn").onclick=function(){d.hidden=false;$("wnx").focus()};$("wnx").onclick=function(){d.hidden=true;try{localStorage.setItem("acticheck_wn",WN)}catch(e){}wnDot();$("wn").focus()};d.addEventListener("click",function(e){if(e.target===d)$("wnx").click()});document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!d.hidden)$("wnx").click()});wnDot();
+if($("verline"))$("verline").textContent="ActiCheck v0.5 \u00b7 Rules v"+R.version})();
 })();

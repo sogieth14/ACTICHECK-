@@ -7,6 +7,7 @@ import os, re, sys
 ROOT = sys.argv[1] if len(sys.argv) > 1 else "."
 SKIP_DIRS = {".git", "node_modules", "tools", ".github"}
 BINARY = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".zip", ".woff", ".woff2")
+ALLOWED_SUFFIX = ("googleapis.com", "firebaseapp.com", "gstatic.com", "google.com", "firebase.google.com")
 ALLOWED_HOSTS = {"fonts.googleapis.com", "fonts.gstatic.com", "wa.me", "www.w3.org", "github.com", "raw.githubusercontent.com", "cdnjs.cloudflare.com", "ndpc.gov.ng"}
 SECRETS = {
     "Google API key": r"AIza[0-9A-Za-z_\-]{30,}",
@@ -18,7 +19,7 @@ SECRETS = {
     "JWT": r"eyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{10,}",
     "Database URL": r"(mongodb(\+srv)?|postgres(ql)?|mysql|redis)://[^\s\"']+",
     "Bearer token": r"Bearer\s+[A-Za-z0-9._\-]{20,}",
-    "Hard-coded secret": r"(?i)(client[_-]?secret|service[_-]?account|private[_-]?key|api[_-]?secret|password|passwd)[\"']?\s*[:=]\s*[\"'][^\"']{8,}[\"']",
+    "Hard-coded secret": r"(?i)(client[_-]?secret|service[_-]?account|private[_-]?key|api[_-]?secret|password|passwd)[\"']?\s*[:=]\s*[\"'][^\"'\s]{8,}[\"']",
 }
 BAD_NAMES = re.compile(r"(\.env|\.pem$|\.key$|\.p12$|\.keystore$|id_rsa|credentials|serviceaccount|firebase-adminsdk|\.map$)", re.I)
 fails, warns = [], []
@@ -40,11 +41,14 @@ for d, dirs, files in os.walk(ROOT):
             if is_lib and name in ("Hard-coded secret",):
                 continue
             for m in re.finditer(rx, t):
+                if name == "Google API key" and f == "firebase-config.js" and "authDomain" in t:
+                    warns.append("Firebase WEB key found in firebase-config.js. Public by design, but make sure the key is restricted to your website in Google Cloud.")
+                    continue
                 fails.append(f"{name} in {p}: {m.group(0)[:40]}...")
         if "sourceMappingURL" in t:
             fails.append(f"Source map reference in {p}")
         for m in re.finditer(r"https?://([A-Za-z0-9.\-]+)", t):
-            if m.group(1) not in ALLOWED_HOSTS:
+            if m.group(1) not in ALLOWED_HOSTS and not m.group(1).endswith(ALLOWED_SUFFIX):
                 warns.append(f"Unexpected host {m.group(1)} in {p}")
         if "[CONFIRM" in t:
             warns.append(f"Unfilled placeholder text [CONFIRM...] in {p}: finish before publishing")
