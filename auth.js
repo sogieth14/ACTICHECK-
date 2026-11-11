@@ -35,6 +35,9 @@ function mail(v){return/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(v)&&v.length<=2
 function norm(id){return $(id).value.trim().toLowerCase()}
 function err(e){var c=(e&&e.code)||"";
 if(c==="auth/too-many-requests")return"Too many attempts. Please wait a few minutes, then try again.";
+ if(c==="auth/unauthorized-continue-uri")return"Firebase rejected the email link return address. Check that sogieth14.github.io is listed in Authentication settings under Authorized domains.";
+ if(c==="auth/invalid-continue-uri")return"Firebase rejected the email link return address. Check the verification email settings and try again.";
+ if(c==="auth/quota-exceeded")return"Firebase temporarily stopped sending verification emails. Please wait and try again later.";
 if(/invalid-credential|wrong-password|user-not-found|invalid-email|missing-password/.test(c))return"The email or password is not correct.";
 if(c==="auth/network-request-failed")return"No internet connection. Connect and try again.";
 if(c==="auth/popup-blocked")return"Your browser blocked the sign-in window. Allow pop-ups for this site and try again.";
@@ -67,10 +70,11 @@ $("au-in").onclick=function(){if(lockLeft()||!ensure())return;var e=norm("au-e2"
 FB.signInWithEmailAndPassword(auth,e,p).then(good,function(x){say(err(x));bad(x);$("au-p2").value=""}).then(function(){busy(b,false);tick()})};
 $("au-p2").addEventListener("keydown",function(ev){if(ev.key==="Enter")$("au-in").click()});
 $("au-mk").onclick=function(){if(!ensure())return;var e=norm("au-e3"),p=$("au-p3").value;if(!mail(e)){say("Enter a valid email address.");return}if(!showRules()){say("Choose a stronger password. See the checks above.");return}if(!$("au-agree").checked){say("Please agree to the Privacy policy to continue.");return}
-var b=this;busy(b,true);say("");FB.createUserWithEmailAndPassword(auth,e,p).then(function(c){wr(CONS,{v:POLICY,t:Date.now(),uid:c.user.uid});return verify(c.user)}).catch(function(x){say(err(x))}).then(function(){busy(b,false)})};
-function link(){return location.origin+location.pathname}
-function verify(u){return FB.sendEmailVerification(u,{url:link()}).catch(function(x){say(err(x))})}
-$("au-resend").onclick=function(){var u=auth&&auth.currentUser;if(!u)return;var b=this;busy(b,true);verify(u).then(function(){say("Link sent. Check your email, including spam.",true);var n=60;clearInterval(verT);var go=function(){if(n<=0){clearInterval(verT);busy(b,false);b.firstChild.nodeValue="Resend link";return}b.firstChild.nodeValue="Resend in "+n--+"s"};go();verT=setInterval(go,1000)})};
+  var b=this;busy(b,true);say("");FB.createUserWithEmailAndPassword(auth,e,p).then(function(c){wr(CONS,{v:POLICY,t:Date.now(),uid:c.user.uid});return verify(c.user,function(){say("Link sent. Check your email, including spam.",true)},showVerifyError)}).catch(function(x){say(err(x))}).then(function(){busy(b,false)})};
+ function link(){return location.origin+location.pathname}
+ function showVerifyError(x){var c=(x&&x.code)||"unknown";console.error("ActiCheck verification email failed",c);say(err(x)+(c!=="unknown"?" (Firebase: "+c+")":""))}
+ function verify(u,onSent,onFailed){return FB.sendEmailVerification(u,{url:link()}).then(function(){if(onSent)onSent()},function(x){if(onFailed)onFailed(x)})}
+ $("au-resend").onclick=function(){var u=auth&&auth.currentUser;if(!u)return;var b=this;busy(b,true);verify(u,function(){say("Link sent. Check your email, including spam.",true);var n=60;clearInterval(verT);var go=function(){if(n<=0){clearInterval(verT);busy(b,false);b.firstChild.nodeValue="Resend link";return}b.firstChild.nodeValue="Resend in "+n--+"s"};go();verT=setInterval(go,1000)},function(x){showVerifyError(x);busy(b,false);b.firstChild.nodeValue="Resend link"})};
 $("au-done").onclick=function(){recheck(true)};
 $("au-other").onclick=function(){FB.signOut(auth)};$("au-out1").onclick=function(){FB.signOut(auth)};
 $("au-retry").onclick=function(){recheck(false)};
