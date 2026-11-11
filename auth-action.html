@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex, nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseapp.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="theme-color" content="#0c1825">
+  <title>Secure account link · ACTICHECK</title>
+  <link rel="icon" href="icon-light.svg" type="image/svg+xml">
+  <style>
+    :root{color-scheme:light dark;--bg:#0c1825;--card:#13263a;--ink:#f3f7fb;--muted:#a9bacb;--blue:#78adff;--line:#2b4156;--danger:#ffb5ad;--success:#a6e6c1;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;min-height:100dvh;background:radial-gradient(ellipse at 50% -20%,#213c58 0,transparent 60%),var(--bg);color:var(--ink);display:flex;flex-direction:column;padding:calc(24px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom))}
+    .brand{width:min(100%,760px);margin:0 auto;display:flex;align-items:center;gap:11px}.brand img{width:38px;height:38px;border-radius:10px}.brand strong{display:block;font-size:15px;letter-spacing:.09em}.brand span{display:block;color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.19em;margin-top:3px}
+    main{width:min(100%,480px);margin:auto; padding:44px 0}.card{border:1px solid var(--line);background:linear-gradient(145deg,rgba(24,47,70,.96),rgba(16,33,50,.98));border-radius:26px;padding:clamp(26px,7vw,42px);box-shadow:0 24px 72px rgba(0,0,0,.24)}
+    .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:var(--blue);font-weight:800}.mark{width:48px;height:48px;border:1px solid #426587;border-radius:16px;display:grid;place-items:center;margin-bottom:20px;background:#183651;color:var(--blue)}.mark svg{width:25px;height:25px}
+    h1{font-size:clamp(26px,7vw,34px);line-height:1.12;letter-spacing:-.035em;margin:10px 0 12px}p{color:var(--muted);line-height:1.65;margin:0 0 22px}#status[hidden],#reset-form[hidden]{display:none}.status-line{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;font-weight:650;margin-bottom:20px}.spinner{width:16px;height:16px;border:2px solid #426587;border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite}.status-line.success{color:var(--success)}.status-line.error{color:var(--danger)}
+    label{display:block;font-size:13px;font-weight:700;margin:16px 0 7px}input{width:100%;min-height:52px;border:1px solid #486179;border-radius:13px;background:#0d1c2a;color:var(--ink);font:inherit;padding:0 14px}input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--blue);outline-offset:3px}.actions{display:grid;gap:12px;margin-top:22px}button,.back{min-height:52px;border-radius:15px;padding:0 18px;font:inherit;font-weight:750;display:flex;align-items:center;justify-content:center;text-decoration:none;cursor:pointer}.primary{background:var(--blue);border:1px solid var(--blue);color:#071522}.secondary{background:transparent;color:var(--ink);border:1px solid #486179}.back[hidden]{display:none}.foot{width:min(100%,760px);margin:0 auto;color:#8296a8;font-size:12px;text-align:center}
+    @keyframes spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}
+  </style>
+</head>
+<body>
+  <header class="brand"><img src="icon-light.svg" width="38" height="38" alt=""><div><strong>ACTICHECK</strong><span>DIAGNOSIS SUPPORT</span></div></header>
+  <main>
+    <section class="card" aria-labelledby="title">
+      <div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4.2 4.2L19 6.8" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="eyebrow">Secure account link</div>
+      <div id="status" class="status-line" role="status" aria-live="polite"><span class="spinner" aria-hidden="true"></span><span id="status-text">Checking your link…</span></div>
+      <h1 id="title" tabindex="-1">Finishing this secure step</h1>
+      <p id="description">Keep this page open for a moment. We’ll return you to ACTICHECK when it’s done.</p>
+      <form id="reset-form" hidden novalidate>
+        <p>Choose a new password for <strong id="reset-email"></strong>.</p>
+        <label for="new-password">New password</label>
+        <input id="new-password" type="password" autocomplete="new-password" minlength="10" maxlength="128" required>
+        <label for="confirm-password">Confirm new password</label>
+        <input id="confirm-password" type="password" autocomplete="new-password" minlength="10" maxlength="128" required>
+        <div class="actions"><button class="primary" type="submit">Save password and continue</button></div>
+      </form>
+      <div class="actions"><a class="back secondary" id="return-link" href="./?auth=verified#home" hidden>Return to ACTICHECK</a></div>
+    </section>
+  </main>
+  <footer class="foot">ACTICHECK · Your account is managed securely by Firebase.</footer>
+  <script src="firebase-config.js"></script>
+  <script src="firebase-app-compat.js"></script>
+  <script src="firebase-auth-compat.js"></script>
+  <script src="firebase-auth-bridge.js"></script>
+  <script src="auth-password-policy.js"></script>
+  <script src="auth-action-core.js"></script>
+  <script src="auth-action.js"></script>
+</body>
+</html>
