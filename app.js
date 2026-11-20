@@ -114,9 +114,9 @@ function gather(){var d=gatherRaw();if(!FREEZE){var g=JSON.stringify(d);if(g!==S
 function fmt(t){return t?new Date(t).toLocaleString([],{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"unknown time"}
 function esc(x){return String(x==null?"":x).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function split(t,d){if(t.length<=520)return[t];var n=Math.ceil(t.length/480),o=[];for(var i=0;i<n;i++)o.push("ACTIP:"+CID+":"+d.rv+":"+(i+1)+"/"+n+":"+t.slice(i*480,(i+1)*480));return o}
-function drawQR(){var n=ST.parts.length;$("qrbox").innerHTML=CASEQR.svg(ST.parts[QP]);$("qrpg").hidden=n<2;$("qrpn").textContent="Part "+(QP+1)+" of "+n}
+function drawQR(){var n=ST.parts.length;try{$("qrbox").innerHTML=CASEQR.svg(ST.parts[QP])}catch(e){$("qrbox").innerHTML='<p class="why" style="text-align:center">Could not draw the QR code. Use Send card or Copy code instead.</p>'}$("qrpg").hidden=n<2;$("qrpn").textContent="Part "+(QP+1)+" of "+n}
 function setCode(t,d){ST.code=t;ST.parts=split(t,d);if(QP>=ST.parts.length)QP=0;drawQR();$("qrts").textContent="Made "+fmt(d.ts)+" \u00b7 version "+d.rv+(ST.parts.length>1?" \u00b7 "+ST.parts.length+" QR codes":"")}
-$("qrprev").onclick=function(){if(ST&&ST.parts){QP=(QP+ST.parts.length-1)%ST.parts.length;drawQR()}};$("qrnext").onclick=function(){if(ST&&ST.parts){QP=(QP+1)%ST.parts.length;drawQR()}};
+$("qrjump").onclick=function(){var c=$("qrcard");c.scrollIntoView({behavior:"smooth",block:"start"});c.classList.remove("flash");void c.offsetWidth;c.classList.add("flash");setTimeout(function(){c.classList.remove("flash")},2000)};$("qrprev").onclick=function(){if(ST&&ST.parts){QP=(QP+ST.parts.length-1)%ST.parts.length;drawQR()}};$("qrnext").onclick=function(){if(ST&&ST.parts){QP=(QP+1)%ST.parts.length;drawQR()}};
 function updQR(){if(!ST)return;if(!CID)CID=newId();if(PHFOR!==CID){PHFOR=CID;renderPh()}var d=gather(),pin=$("pinon").checked?$("pin").value:"",nm=d.n;$("qrid").textContent=(nm?nm+" \u00b7 ":"")+"Case "+CID;
 if($("pinon").checked&&pin.length<4){ST.code="";ST.parts=null;$("qrbox").innerHTML="";$("qrpg").hidden=true;$("qrts").textContent="";$("pinmsg").textContent="Enter a PIN of 4 to 8 digits to create the locked QR.";return}
 $("pinmsg").textContent=$("pinon").checked?"Locked. Share the PIN separately, never with the QR.":"";
@@ -146,7 +146,7 @@ document.querySelector("#tool").addEventListener("input",later);document.querySe
 function peek(top){var p=$("peek");if(!top.length){p.hidden=true;return}top=top.slice().sort(function(x,y){return y.sc-x.sc}).slice(0,2);p.hidden=false;p.innerHTML='<div class="pkh">Leaning toward so far<span>updates as you tap</span></div>'+top.map(function(r,i){return'<div class="pkr"><b>'+r.d.n+'</b><span class="lp">'+(i?"Also consider":"Most consistent")+'</span></div>'}).join("")}
 function peekNow(){if(!$("age").value||!Object.keys(sel("sym")).length){$("peek").hidden=true;return}DRY=true;try{$("run").onclick()}finally{DRY=false}}
 var SV=function(p){return'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>'},TI={light:SV('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/>'),dark:SV('<path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z"/>'),auto:SV('<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 010 16z" fill="currentColor"/>')};var TH=["light","dark","auto"];function setTheme(t){try{localStorage.setItem("acticheck_theme",t)}catch(e){}if(t==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",t);$("theme").innerHTML=TI[t];$("theme").setAttribute("aria-label","Appearance: "+t+". Tap to switch light, dark or auto.");$("theme").title="Appearance: "+t}
-var cur="light";try{cur=localStorage.getItem("acticheck_theme")||"light"}catch(e){}setTheme(cur);$("theme").onclick=function(){cur=TH[(TH.indexOf(cur)+1)%3];setTheme(cur)};
+var cur="light";try{cur=localStorage.getItem("acticheck_theme")||"light"}catch(e){}setTheme(cur);$("theme").onclick=function(){cur=TH[(TH.indexOf(cur)+1)%3];setTheme(cur)};window.__setTheme=function(t){cur=t;setTheme(t)};
 renderFiles();
 function applyCase(c){var sb=$("scb");if(sb)sb.hidden=true;RPN=c.pn||0;PHFOR=null;FREEZE=true;REV=c.rv||0;TS=c.ts||0;document.querySelectorAll("#sym input,#ctx input,#tst input").forEach(function(i){i.checked=false});
 (c.s||[]).forEach(function(k){var e=document.querySelector('#sym input[data-k="'+k+'"]');if(e)e.checked=true});
@@ -261,7 +261,7 @@ var rv=document.createElement("div");rv.id="rvw";rv.className="row";rv.innerHTML
 var hd=document.createElement("div");hd.className="wzh";hd.id="wzh";hd.innerHTML='<button class="ib" id="wzback" aria-label="Back"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button><div class="wzs" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div><span class="wzn"></span>';
 $("wiz").insertBefore(hd,$("wiz").firstChild);
 var ft=document.createElement("div");ft.className="wzf";ft.innerHTML='<div class="st2" id="wzst"></div><button class="b b1" id="wznext"></button>';$("wiz").appendChild(ft)})();
-function wzGo(i){WP=i;WR.forEach(function(r){r.classList.remove("cur")});WR[i].classList.add("cur");[].forEach.call(document.querySelectorAll(".wzs span"),function(s,k){s.className=k<=i?"on":""});document.querySelector(".wzn").textContent=(i+1)+" of 5";
+function wzGo(i){WP=i;document.body.dataset.step=i;WR.forEach(function(r){r.classList.remove("cur")});WR[i].classList.add("cur");[].forEach.call(document.querySelectorAll(".wzs span"),function(s,k){s.className=k<=i?"on":""});document.querySelector(".wzn").textContent=(i+1)+" of 5";
 $("wznext").innerHTML=WT[i][2]+'<i>&#8594;</i>';$("wzst").textContent=($("fname").value.trim()||"New file")+(i===1?" \u00b7 "+Object.keys(sel("sym")).length+" selected":"");
 if(i===4)wzReview();var t=WR[i].querySelector(".wt");if(t){t.focus({preventScroll:true})}$("tool").scrollIntoView()}
 function wzReview(){var L=function(o,m){return Object.keys(o).map(function(k){return m[k]}).join(", ")||"None"},vt=[["v-t","Temperature","\u00b0C"],["v-p","Pulse",""],["v-r","Breathing",""],["v-o","Oxygen","%"],["v-w","Weight","kg"],["v-h","Height","cm"],["v-g","Sugar",""]].filter(function(x){return $(x[0]).value!==""&&vcheck(x[0]).l!=="err"}).map(function(x){return x[1]+" "+$(x[0]).value+x[2]});if($("v-s").value||$("v-d").value)vt.unshift("BP "+($("v-s").value||"?")+"/"+($("v-d").value||"?"));
@@ -271,6 +271,7 @@ WR[4].innerHTML='<h2 class="wt" tabindex="-1">'+WT[4][0]+'</h2><p class="ws">'+W
 $("wiz").addEventListener("click",function(e){var ed=e.target.closest(".ed");if(ed)wzGo(+ed.dataset.pg)});
 $("wznext").onclick=function(){if(WP===0){var er=$("age-err");if(!$("fname").value.trim()){er.textContent="Give this file a name, like Bed 4.";er.hidden=false;$("fname").focus();return}if(!$("age").value){er.textContent="Choose an age group first.";er.hidden=false;$("age").focus();return}er.hidden=true}
 if(WP===2){var vb=vall();if(vb){toast("Fix the highlighted numbers first",null,3500);$(vb).focus();return}}if(WP===4){$("run").click();return}wzGo(WP+1);if(WP===4)saveFile()};
+$("sym").addEventListener("change",function(){if(WP===1)$("wzst").textContent=($("fname").value.trim()||"New file")+" \u00b7 "+Object.keys(sel("sym")).length+" selected"});
 $("wzback").onclick=function(){if(WP===0){saveFile();wzHome()}else wzGo(WP-1)};
 function wzHome(){$("wiz").hidden=true;$("out").style.display="none";$("fhome").hidden=false;renderFiles();$("tool").scrollIntoView()}
 window.__wz={start:function(i){$("fhome").hidden=true;$("out").style.display="none";$("wiz").hidden=false;wzGo(i||0)}};
@@ -278,7 +279,7 @@ $("edit").onclick=function(){$("out").style.display="none";__wz.start(4)};$("tof
 var standalone=(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone,ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__ip=e});
 $("inst").onclick=function(){HOW.open(ios?"ios":"and")};if(standalone)$("inst").hidden=true;
-try{if(!standalone&&!localStorage.getItem("acticheck_guide_seen"))setTimeout(welcome,1200);else if(standalone&&!localStorage.getItem("acticheck_tour_seen"))setTimeout(function(){HOW.open()},1200)}catch(e){}
+try{if(!standalone&&!localStorage.getItem("acticheck_guide_seen")&&!window.ActiCheckOnboard)setTimeout(welcome,1200);else if(standalone&&!localStorage.getItem("acticheck_tour_seen"))setTimeout(function(){HOW.open()},1200)}catch(e){}
 
 // ---- pages: three tabs (Home, Cases, Profile) with clerking and results opening over them
 var CURV="home",SILENT=false,TT={files:"Cases",wiz:"Clerking",out:"Results",profile:"Profile"},TABV={home:1,files:1,profile:1};
@@ -302,9 +303,9 @@ function renderRecent(){var a=fstore().sort(function(x,y){return y.t-x.t}),n=$("
 $("hrec").addEventListener("click",function(e){var c=e.target.closest(".fc[data-id]");if(!c)return;var r=fstore().filter(function(x){return x.id===c.dataset.id})[0];if(r){document.body.classList.remove("onhome");applyCase(r.d)}});
 document.querySelectorAll(".fchip").forEach(function(b){b.onclick=function(){FIL=b.dataset.f;document.querySelectorAll(".fchip").forEach(function(x){var on=x===b;x.classList.toggle("on",on);x.setAttribute("aria-pressed",on)});renderFiles()}});
 // what's new
-var WN="0.5";function wnDot(){var s="";try{s=localStorage.getItem("acticheck_wn")||""}catch(e){}$("wndot").hidden=s===WN}
+var WN="0.6";function wnDot(){var s="";try{s=localStorage.getItem("acticheck_wn")||""}catch(e){}$("wndot").hidden=s===WN}
 (function(){var d=document.createElement("div");d.className="wns";d.id="wns";d.hidden=true;d.setAttribute("role","dialog");d.setAttribute("aria-modal","true");d.setAttribute("aria-label","What's new");
-d.innerHTML='<div class="wnc"><small>VERSION '+WN+'</small><h2>What\'s new</h2><div class="wnl"><div><b>Sign in with Google or email</b><span>Your account unlocks the app on any phone.</span></div><div><b>Home, Cases and Profile</b><span>A cleaner start screen and tabs at the bottom.</span></div><div><b>Photos with patient files</b><span>Attach test results so the whole file travels together.</span></div><div><b>Safer numbers</b><span>Impossible vitals are blocked and unusual ones are flagged.</span></div></div><button class="b b1" id="wnx" type="button">Got it<i>&#8594;</i></button></div>';document.body.appendChild(d);
+d.innerHTML='<div class="wnc"><small>VERSION '+WN+'</small><h2>What\'s new</h2><div class="wnl"><div><b>A fresh look</b><span>Soft colour on every screen and bolder headings.</span></div><div><b>Quick setup</b><span>A short welcome the first time you open ActiCheck.</span></div><div><b>Prototype notice</b><span>A clear note that the rules are drafts a doctor has not reviewed yet.</span></div></div><button class="b b1" id="wnx" type="button">Got it<i>&#8594;</i></button></div>';document.body.appendChild(d);
 $("wn").onclick=function(){d.hidden=false;$("wnx").focus()};$("wnx").onclick=function(){d.hidden=true;try{localStorage.setItem("acticheck_wn",WN)}catch(e){}wnDot();$("wn").focus()};d.addEventListener("click",function(e){if(e.target===d)$("wnx").click()});document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!d.hidden)$("wnx").click()});wnDot();
-if($("verline"))$("verline").textContent="ActiCheck v0.5 \u00b7 Rules v"+R.version})();
+if($("verline"))$("verline").textContent="ActiCheck v0.6 \u00b7 Rules v"+R.version})();
 })();
