@@ -20,7 +20,7 @@ To roll back, restore the previous versions of those 5 files and delete onboard.
 - Role and workplace are saved on the phone only (acticheck_profile). Nothing uses them yet.
 - The old "Are you new to ActiCheck?" pop up no longer shows, because the setup replaces it. The tour for the installed app still runs.
 - Storage keys added: acticheck_intro, acticheck_setup, acticheck_profile, acticheck_proto. The privacy agreement uses your existing acticheck_consent record (policy 1.0).
-- privacy.html still contains the [CONFIRM...] placeholders and the Terms of Use is not written yet. Fill those in before wider release. I am not a lawyer, so get the wording reviewed.
+- privacy.html still contains the CONFIRM placeholders and the Terms of Use is not written yet. Fill those in before wider release. I am not a lawyer, so get the wording reviewed.
 - tools/predeploy-check.py reports the same items as before (Firebase vendor files). Nothing new was added by this update.
 
 ## Tested

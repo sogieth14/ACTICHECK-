@@ -74,26 +74,30 @@ var l=document.createElement("a");l.href=URL.createObjectURL(new Blob([csv],{typ
 };
 var ST=null;
 function item(id,t,how,v,dis,nm){var dk=nm+"|"+id,hd=nm&&window.ACTI_DEMOS&&ACTI_DEMOS.has(t);return '<div class="it'+(dis?" dis":"")+'"><div class="itt">'+t+'<small>'+how+'</small>'+(hd?'<button class="dm" data-dk="'+dk+'">'+(ST.dm[dk]?"Hide demo":"Show demo")+'</button>':"")+'</div><div class="seg" role="group" aria-label="'+esc(t)+'"><button data-id="'+id+'" data-a="1" aria-pressed="'+(v===1)+'" class="'+(v===1?"on":"")+'"'+(dis?" disabled":"")+'>Yes</button><button data-id="'+id+'" data-a="-1" aria-pressed="'+(v===-1)+'" class="'+(v===-1?"on no":"")+'"'+(dis?" disabled":"")+'>No</button></div>'+(hd&&ST.dm[dk]?'<div class="demo" data-dk="'+dk+'" data-t="'+t+'"></div>':"")+'</div>'}
-function score(r){var sc=r.sc,a=ST.adj[r.d.n]||{};(R.checks[r.d.n]||[]).forEach(function(it,i){var v=a["e"+i];if(v===1)sc+=it[2];else if(v===-1&&it[2]>0)sc-=it[2]});r.d.tests.forEach(function(t,i){var v=a["t"+i],w=i===0?3:1;if(v===1)sc+=w;else if(v===-1)sc-=w});return sc}
+function score(r){var sc=r.sc,a=ST.adj[r.d.n]||{};(R.checks[r.d.n]||[]).forEach(function(it,i){var v=a["e"+i];if(v===1)sc+=it[2];else if(v===-1&&it[2]>0)sc-=it[2]});var RS=R.results||{};r.d.tests.forEach(function(t,i){if(ST.tr[t]!=null||(RS[t]&&RS[t].noscore))return;var v=a["t"+i],w=i===0?3:1;if(v===1)sc+=w;else if(v===-1)sc-=w});Object.keys(ST.tr).forEach(function(t){var o=RS[t]&&RS[t].outs&&RS[t].outs[ST.tr[t]],f=o&&o.fx&&o.fx[r.d.n];if(f)sc+=f});return sc}
+function resn(n){var RS=R.results||{},out=[],net=0;Object.keys(ST.tr).forEach(function(t){var o=RS[t]&&RS[t].outs&&RS[t].outs[ST.tr[t]],f=o&&o.fx&&o.fx[n];if(f){net+=f;out.push(R.tests[t]+" "+o.l.toLowerCase()+(f>0?" supports this":" weakens this"))}});return{t:out.length?"Test results: "+out.join("; ")+".":"",s:net}}
+function renderTR(){var b=$("trs");if(!b)return;if(!ST||!ST.need){b.hidden=true;return}var RS=R.results||{},h="",k;for(k in ST.need){if(ST.avail[k]&&RS[k]&&RS[k].outs){var rt=RS[k],v=ST.tr[k],nt=rt.noscore?"Recorded in the file. It does not change the list yet.":(rt.note||"");h+='<div class="it"><div class="itt">'+esc(R.tests[k])+(nt?'<small>'+esc(nt)+'</small>':"")+'</div><div class="seg" role="group" aria-label="'+esc(R.tests[k])+' result">'+rt.outs.map(function(o,i){return '<button data-t="'+k+'" data-o="'+i+'" aria-pressed="'+(v===i)+'" class="'+(v===i?"on":"")+'">'+esc(o.l)+'</button>'}).join("")+'</div></div>'}}
+b.hidden=!h;b.innerHTML=h?'<div class="ckh">Record test results</div><p class="why" style="margin:0 0 4px">Tap what the test showed and the list above updates. These effects are drafts and have not been reviewed by a doctor yet.</p>'+h:""}
 function renderDx(){
 var rows=ST.top.map(function(r){return{r:r,s:score(r)}}).sort(function(a,b){return b.s-a.s}),max=Math.max.apply(null,rows.map(function(x){return x.s}).concat([1])),h="",found=[];
 if(!rows.length)h='<p class="why">Not enough to rank anything. Add symptoms or vitals, or consider causes outside these rules.</p>';
 rows.forEach(function(x){var r=x.r,d=r.d,a=ST.adj[d.n]||{},open=ST.open[d.n],low=x.s<R.threshold,lab=low?"Less likely now":(x.s>=0.75*max?"Most consistent":"Also consider");
-h+='<div class="dx'+(low?" low":"")+'" data-n="'+d.n+'"><button class="dxh" aria-expanded="'+!!open+'"><span class="top"><span>'+esc(d.n)+'</span><span class="lp">'+lab+'</span></span><span class="cat">'+d.cat+(open?" · tap to close":" · tap to examine and test")+'</span></button><div class="bar"><i style="width:'+Math.max(4,Math.round(Math.max(x.s,0)/max*100))+'%"></i></div><div class="why">'+d.why+(r.hits.length?" Matches: "+r.hits.join(", ")+".":"")+'</div>';
+h+='<div class="dx'+(low?" low":"")+'" data-n="'+d.n+'"><button class="dxh" aria-expanded="'+!!open+'"><span class="top"><span>'+esc(d.n)+'</span><span class="lp">'+lab+'</span></span><span class="cat">'+d.cat+(open?" · tap to close":" · tap to examine and test")+'</span></button><div class="bar"><i style="width:'+Math.max(4,Math.round(Math.max(x.s,0)/max*100))+'%"></i></div><div class="why">'+d.why+(r.hits.length?" Matches: "+r.hits.join(", ")+".":"")+'</div>';var rsn=resn(d.n);if(rsn.t)h+='<div class="why rsn '+(rsn.s>0?"up":rsn.s<0?"dn":"")+'">'+(rsn.s>0?"&#9650; ":rsn.s<0?"&#9660; ":"")+esc(rsn.t)+'</div>';
 (R.checks[d.n]||[]).forEach(function(it,i){if(it[3]&&a["e"+i]===1)h+='<div class="flag"><b>Urgent</b><span class="why">'+it[3]+'</span></div>'});
 if(open){h+='<div class="ck"><div class="ckh">Examine</div>';
 (R.checks[d.n]||[]).forEach(function(it,i){h+=item("e"+i,it[0],it[1],a["e"+i],false,d.n)});
 h+='<div class="ckh">Tests</div>';
-d.tests.forEach(function(t,i){var av=ST.avail[t];h+=item("t"+i,R.tests[t]+(av?"":" (not available here)"),av?"Is the result positive or abnormal?":"Consider referral.",a["t"+i],!av)});
+d.tests.forEach(function(t,i){var av=ST.avail[t],rt=R.results&&R.results[t];if(rt&&(rt.noscore||ST.tr[t]!=null)){h+='<p class="why">'+esc(R.tests[t])+(ST.tr[t]!=null?": "+esc(rt.outs[ST.tr[t]].l)+". Recorded in Test results.":(av?": record the result in Test results. It does not change the list yet.":" (not available here). Consider referral."))+"</p>";return}h+=item("t"+i,R.tests[t]+(av?"":" (not available here)"),av?"Is the result positive or abnormal?":"Consider referral.",a["t"+i],!av)});
 if(!d.tests.length)h+='<p class="why">No tests needed.</p>';h+='</div>'}
 h+='</div>';
 (R.checks[d.n]||[]).forEach(function(it,i){if(a["e"+i])found.push(d.n+": "+it[0]+" "+(a["e"+i]===1?"yes":"no"))});
-d.tests.forEach(function(t,i){if(a["t"+i])found.push(d.n+": "+R.tests[t]+" "+(a["t"+i]===1?"positive":"negative"))})});
+d.tests.forEach(function(t,i){if(a["t"+i]&&ST.tr[t]==null)found.push(d.n+": "+R.tests[t]+" "+(a["t"+i]===1?"positive":"negative"))})});Object.keys(ST.tr).forEach(function(t){var o=R.results[t]&&R.results[t].outs[ST.tr[t]];if(o)found.push("Test result: "+R.tests[t]+" "+o.l)});
 if(!R.reviewed)h+='<p class="why" style="margin-top:12px">Rules v'+R.version+' have not been reviewed by a doctor yet. Labels show how well the findings fit, not a probability.</p>';
 $("dxs").innerHTML=h;updQR();document.querySelectorAll("#dxs .demo").forEach(function(b){ACTI_DEMOS.mount(b,b.dataset.t)});if(last)last.chk=found.join("; ")}
 $("dxs").addEventListener("click",function(e){if(!ST)return;var sg=e.target.closest(".seg button"),hd=e.target.closest(".dxh"),dm=e.target.closest(".dm");
-if(dm){ST.dm[dm.dataset.dk]=!ST.dm[dm.dataset.dk];renderDx()}else if(sg){var n=sg.closest(".dx").dataset.n,id=sg.dataset.id,v=+sg.dataset.a,a=ST.adj[n]=ST.adj[n]||{};if(a[id]===v)delete a[id];else a[id]=v;renderDx()}
+if(dm){ST.dm[dm.dataset.dk]=!ST.dm[dm.dataset.dk];renderDx()}else if(sg){var n=sg.closest(".dx").dataset.n,id=sg.dataset.id,v=+sg.dataset.a,a=ST.adj[n]=ST.adj[n]||{};if(a[id]===v)delete a[id];else a[id]=v;renderDx();saveFile()}
 else if(hd){var m=hd.closest(".dx").dataset.n;ST.open[m]=!ST.open[m];renderDx()}});
+$("trs").addEventListener("click",function(e){var bt=e.target.closest(".seg button");if(!bt||!ST)return;var t=bt.dataset.t,o=+bt.dataset.o;if(ST.tr[t]===o)delete ST.tr[t];else ST.tr[t]=o;renderTR();renderDx();saveFile()});
 var CID=null,KEEP=false,DRY=false,tmP,tmS;
 function newId(){var c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",s="";for(var i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)];return s}
 var OWN=function(o,k){return Object.prototype.hasOwnProperty.call(o,k)};
@@ -106,9 +110,10 @@ o.s=keep(c.s,R.symptoms);o.c=keep(c.c,R.context);o.t=keep(c.t,R.tests);o.x={};va
 ["t","p","r","s","d","o","w","h","g"].forEach(function(k){if(OWN(x,k)&&(typeof x[k]==="string"||typeof x[k]==="number")&&num.test(String(x[k])))o.x[k]=String(x[k])});
 if(x.gu==="mmol"||x.gu==="mg")o.x.gu=x.gu;o.f={};
 if(c.f&&typeof c.f==="object")R.conditions.forEach(function(d){if(OWN(c.f,d.n)&&c.f[d.n]&&typeof c.f[d.n]==="object"){var m={};Object.keys(c.f[d.n]).forEach(function(k){var v=c.f[d.n][k];if(/^[et]\d{1,2}$/.test(k)&&(v===1||v===-1))m[k]=v});o.f[d.n]=m}});
+o.q={};if(c.q&&typeof c.q==="object"&&!Array.isArray(c.q)){var RQ=R.results||{};Object.keys(RQ).forEach(function(t){if(OWN(c.q,t)){var iq=c.q[t];if(Number.isInteger(iq)&&iq>=0&&iq<RQ[t].outs.length)o.q[t]=iq}})}
 var rv=parseInt(c.rv,10),ts=Number(c.ts),pn=parseInt(c.pn,10);o.rv=rv>0&&rv<100000?rv:1;o.ts=isFinite(ts)&&ts>0&&ts<4102444800000?ts:0;o.pn=pn>0&&pn<100?pn:0;return o}
 function gatherRaw(){var v={};["t","p","r","s","d","o","w","h","g"].forEach(function(k){var x=$("v-"+k).value;if(x!==""&&vcheck("v-"+k).l!=="err")v[k]=x});if($("v-gu").value)v.gu=$("v-gu").value;
-return{v:1,id:CID,n:$("fname").value.trim(),w:$("fward").value.trim(),fi:last?last.final:"",a:$("age").value,d:$("dur").value,s:Object.keys(sel("sym")),c:Object.keys(sel("ctx")),t:Object.keys(sel("tst")),x:v,f:ST?ST.adj:{},pn:Math.max(PHN,RPN)}}
+return{v:1,id:CID,n:$("fname").value.trim(),w:$("fward").value.trim(),fi:last?last.final:"",a:$("age").value,d:$("dur").value,s:Object.keys(sel("sym")),c:Object.keys(sel("ctx")),t:Object.keys(sel("tst")),x:v,f:ST?ST.adj:{},q:ST?ST.tr:{},pn:Math.max(PHN,RPN)}}
 var REV=0,TS=0,SIG=null,FREEZE=false,QP=0,PHN=0,RPN=0,PHFOR=null;
 function gather(){var d=gatherRaw();if(!FREEZE){var g=JSON.stringify(d);if(g!==SIG){SIG=g;REV++;TS=Date.now()}}d.rv=REV;d.ts=TS;return d}
 function fmt(t){return t?new Date(t).toLocaleString([],{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"unknown time"}
@@ -153,7 +158,7 @@ function applyCase(c){var sb=$("scb");if(sb)sb.hidden=true;RPN=c.pn||0;PHFOR=nul
 (c.c||[]).forEach(function(k){var e=document.querySelector('#ctx input[data-k="'+k+'"]');if(e)e.checked=true});
 (c.t||[]).forEach(function(k){var e=document.querySelector('#tst input[data-k="'+k+'"]');if(e)e.checked=true});
 $("age").value=c.a||"";$("dur").value=c.d||"";var x=c.x||{};["t","p","r","s","d","o","w","h","g"].forEach(function(k){$("v-"+k).value=x[k]!==undefined?x[k]:""});$("v-gu").value=x.gu||"";
-$("fname").value=String(c.n||"").slice(0,60);$("fward").value=String(c.w||"").slice(0,40);count();CID=c.id||newId();if(c.a){KEEP=true;$("run").click();if(c.fi){$("final").value=c.fi;if(last)last.final=c.fi}if(ST){ST.adj=c.f||{};renderDx()}}else{ST=null;$("out").style.display="none";__wz.start(0)}saveFile();FREEZE=false;SIG=JSON.stringify(gatherRaw())}
+$("fname").value=String(c.n||"").slice(0,60);$("fward").value=String(c.w||"").slice(0,40);count();CID=c.id||newId();if(c.a){KEEP=true;$("run").click();if(c.fi){$("final").value=c.fi;if(last)last.final=c.fi}if(ST){ST.adj=c.f||{};ST.tr=c.q||{};renderDx();renderTR()}}else{ST=null;$("out").style.display="none";__wz.start(0)}saveFile();FREEZE=false;SIG=JSON.stringify(gatherRaw())}
 function onScanned(c){c=cleanCase(c);if(!c){toast("That case could not be read.",null,4000);return}var loc=fstore().filter(function(x){return x.id===c.id})[0];
 if(loc&&(loc.d.ts||0)>(c.ts||0)){if(confirm("You already have a newer copy of "+(loc.d.n||"this case")+" on this phone (made "+fmt(loc.d.ts)+", version "+(loc.d.rv||1)+"). The QR is from "+fmt(c.ts)+" (version "+(c.rv||1)+").\n\nOK: open your newer copy.\nCancel: open the QR copy as a separate file.")){applyCase(loc.d);shown(loc.d," (you already had a newer copy)");return}c=JSON.parse(JSON.stringify(c));c.id=newId();c.n=(c.n||"Case")+" (older copy)"}
 applyCase(c);shown(c,c.n.slice(-12)==="(older copy)"?" (saved as a separate file)":"")}
@@ -239,10 +244,10 @@ var fh="<h2>Warning signs</h2>";
 if(flags.length)flags.forEach(function(f){fh+='<div class="flag"><b>'+f.name+'</b><span class="why">'+f.msg+'</span></div>'});
 else fh+='<p class="why">None triggered by what you entered. Still check vitals and examine fully.</p>';
 $("flags").innerHTML=fh;
-ST={top:top,adj:{},open:{},dm:{},avail:t};renderDx();
+ST={top:top,adj:{},open:{},dm:{},avail:t,tr:{}};renderDx();
 var need={};top.forEach(function(r){r.d.tests.forEach(function(x){need[x]=1})});flags.forEach(function(f){f.tests.forEach(function(x){need[x]=1})});
 var th="",mh=[];for(var k3 in need){if(t[k3])th+="<li>"+R.tests[k3]+"</li>";else mh.push(R.tests[k3])}
-$("tests").innerHTML=th||"<li>No extra tests needed from your list</li>";
+$("tests").innerHTML=th||"<li>No extra tests needed from your list</li>";ST.need=need;renderTR();
 var m=$("miss");m.hidden=!mh.length;m.textContent="Not available here, consider referral: "+mh.join(", ")+".";
 $("saved").textContent="";$("final").selectedIndex=0;
 last={time:new Date().toISOString(),age:age,dur:dur,sym:Object.keys(s).join(" "),ctx:Object.keys(c).join(" "),vit:vit.map(function(v){return v.l+" "+v.v}).join("; "),top:top.map(function(r){return r.d.n}).slice(0,3).join(" | "),chk:"",final:""};
@@ -303,9 +308,9 @@ function renderRecent(){var a=fstore().sort(function(x,y){return y.t-x.t}),n=$("
 $("hrec").addEventListener("click",function(e){var c=e.target.closest(".fc[data-id]");if(!c)return;var r=fstore().filter(function(x){return x.id===c.dataset.id})[0];if(r){document.body.classList.remove("onhome");applyCase(r.d)}});
 document.querySelectorAll(".fchip").forEach(function(b){b.onclick=function(){FIL=b.dataset.f;document.querySelectorAll(".fchip").forEach(function(x){var on=x===b;x.classList.toggle("on",on);x.setAttribute("aria-pressed",on)});renderFiles()}});
 // what's new
-var WN="0.6";function wnDot(){var s="";try{s=localStorage.getItem("acticheck_wn")||""}catch(e){}$("wndot").hidden=s===WN}
+var WN="0.7";function wnDot(){var s="";try{s=localStorage.getItem("acticheck_wn")||""}catch(e){}$("wndot").hidden=s===WN}
 (function(){var d=document.createElement("div");d.className="wns";d.id="wns";d.hidden=true;d.setAttribute("role","dialog");d.setAttribute("aria-modal","true");d.setAttribute("aria-label","What's new");
-d.innerHTML='<div class="wnc"><small>VERSION '+WN+'</small><h2>What\'s new</h2><div class="wnl"><div><b>A fresh look</b><span>Soft colour on every screen and bolder headings.</span></div><div><b>Quick setup</b><span>A short welcome the first time you open ActiCheck.</span></div><div><b>Prototype notice</b><span>A clear note that the rules are drafts a doctor has not reviewed yet.</span></div></div><button class="b b1" id="wnx" type="button">Got it<i>&#8594;</i></button></div>';document.body.appendChild(d);
+d.innerHTML='<div class="wnc"><small>VERSION '+WN+'</small><h2>What\'s new</h2><div class="wnl"><div><b>Test results in one place</b><span>Record what a test showed and the list updates, with the reason shown.</span></div><div><b>Drafts, clearly marked</b><span>Test effects are drafts until a doctor reviews them.</span></div><div><b>Spine X-ray</b><span>Added for sciatica, from a doctor review.</span></div></div><button class="b b1" id="wnx" type="button">Got it<i>&#8594;</i></button></div>';document.body.appendChild(d);
 $("wn").onclick=function(){d.hidden=false;$("wnx").focus()};$("wnx").onclick=function(){d.hidden=true;try{localStorage.setItem("acticheck_wn",WN)}catch(e){}wnDot();$("wn").focus()};d.addEventListener("click",function(e){if(e.target===d)$("wnx").click()});document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!d.hidden)$("wnx").click()});wnDot();
-if($("verline"))$("verline").textContent="ActiCheck v0.6 \u00b7 Rules v"+R.version})();
+if($("verline"))$("verline").textContent="ActiCheck v0.7 \u00b7 Rules v"+R.version})();
 })();
